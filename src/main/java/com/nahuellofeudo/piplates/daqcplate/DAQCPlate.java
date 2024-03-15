@@ -33,10 +33,9 @@ public class DAQCPlate extends PiPlate {
      * Base address for the DAQCplate
      */
     @Override
-    protected int getBaseAddr() {
+    protected int getBaseAddress() {
         return 8;
     }
-
 
     /* --------- Interrupt Control Functions --------- */
     /**
@@ -58,11 +57,10 @@ public class DAQCPlate extends PiPlate {
      * @return integer with all the interrupt flags
      */
     public int getIntFlags() {
-        byte [] resp=ppCommand(0x06, 0, 0, 2);
-        int value=(256 * resp[0] + resp[1]);
-        return value;
+        var resp = ppCommand(0x06, 0, 0, 2).orElse(new byte[0]);
+        // TODO: How do we want to handle no response?
+        return (256 * resp[0] + resp[1]);
     }
-
 
     /* ---------  Digital Input Functions --------- */
     /**
@@ -73,7 +71,8 @@ public class DAQCPlate extends PiPlate {
      */
     public boolean getDINBit(int bit) throws InvalidParameterException {
         validateDINBit(bit);
-        byte [] resp=ppCommand(0x20, bit, 0, 1);
+        // TODO: How do we want to handle no response?
+        var resp = ppCommand(0x20, bit, 0, 1).orElse(new byte[0]);
         return (resp[0] > 0);
     }
 
@@ -82,10 +81,10 @@ public class DAQCPlate extends PiPlate {
      * @return the values of all 8 digital inputs
      */
     public byte getDINAll() {
-        byte [] resp = ppCommand(0x25, 0, 0, 1);
+        // TODO: How do we want to handle no response?
+        var resp = ppCommand(0x25, 0, 0, 1).orElse(new byte[0]);
         return resp[0];
     }
-
 
     /**
      * Enables the triggering of an interrupt on digital input change
@@ -108,7 +107,6 @@ public class DAQCPlate extends PiPlate {
         }
     }
 
-
     /**
      * Disables the interrupt-on-change on the digital input bit
      * @param bit digital input on which to disable interrupt-on-change
@@ -118,7 +116,6 @@ public class DAQCPlate extends PiPlate {
         validateDINBit(bit);
         ppCommand(0x24, bit, 0, 0);
     }
-
 
     /* --------- Utility functions for peripherals --------- */
     /**
@@ -132,11 +129,17 @@ public class DAQCPlate extends PiPlate {
     public double getTemperature(int channel, TemperatureUnit unit) throws InvalidParameterException, InterruptedException {
         validateAnalogIn(channel);
         ppCommand(0x70, channel, 0, 0);
+
+        // TODO: What do do here?
         Thread.sleep(1000);
-        byte [] resp = ppCommand(0x71, channel, 0, 2);
+
+        // TODO: How do we want to handle no response?
+        var resp = ppCommand(0x71, channel, 0, 2).orElse(new byte[0]);
 
         long temp = resp[0] * 256 + resp[1];
-        if (temp>0x8000) temp = temp ^ 0xFFFF;
+
+        // TODO: Condition always false?
+        if (temp > 0x8000) temp = temp ^ 0xFFFF;
         temp = -(temp + 1);
 
         double dblTemp = temp/16.0;
@@ -166,9 +169,15 @@ public class DAQCPlate extends PiPlate {
      */
     public double getRange(int channel, DistanceUnit unit) throws PiPlateException, InterruptedException {
         if (channel < 0 || channel > 6) throw new InvalidParameterException("Channel must be in the range [0..6]");
-        byte [] resp = ppCommand(0x80, channel, 0, 0);
+
+        // TODO: How do we want to handle no response?
+        var resp = ppCommand(0x80, channel, 0, 0).orElse(new byte[0]);
+
+        // TODO: What to do here?
         Thread.sleep(700);
-        resp = ppCommand(0x81, channel, 0, 2);
+
+        // TODO: How do we want to handle no response?
+        resp = ppCommand(0x81, channel, 0, 2).orElse(new byte[0]);
 
         long range=resp[0] * 256 + resp[1];
         if (range == 0) throw new PiPlateException("Range sensor error or sensor not present on channel " + channel);
@@ -195,12 +204,19 @@ public class DAQCPlate extends PiPlate {
      */
     public int getADC(int channel) throws InvalidParameterException {
         validateAnalogIn(channel);
-        byte [] resp = ppCommand(0x30, channel, 0, 2, 100);
+
+        // TODO: How do we want to handle no response?
+        // TODO: This had a longer, 100ms delay. Does it still work?
+        var resp = ppCommand(0x30, channel, 0, 2).orElse(new byte[0]);
+
         int value = (256 * unsigned(resp[0]) + unsigned(resp[1]));
+
         value *= 4;
+
         if (channel == 8) {
             value = value * 2;
         }
+
         return value;
     }
 
@@ -211,11 +227,16 @@ public class DAQCPlate extends PiPlate {
      */
     public int[] getADCAll() {
         int [] values = new int [8];
-        byte[] resp = ppCommand(0x31, 0, 0, 16, 300);
+
+        // TODO: How do we want to handle no response?
+        // TODO: This had a longer, 300ms delay. Does it still work?
+        var resp = ppCommand(0x31, 0, 0, 16).orElse(new byte[0]);
+
         for (int i = 0; i < 8; i++) {
             values[i] = (256 * unsigned(resp[2 * i]) + unsigned(resp[(2 * i) + 1]));
             values[i] *= 4;
         }
+
         return values;
     }
 
@@ -230,9 +251,11 @@ public class DAQCPlate extends PiPlate {
     public void setPWM(int channel, int value) throws InvalidParameterException {
         if (value < 0 || value > 1023) throw new InvalidParameterException("ERROR: PWM argument out of range - must be between 0 and 1023");
         if (channel != 0 && channel != 1) throw new InvalidParameterException("Error: PWM channel must be 0 or 1");
-        byte hibyte = (byte) (value >> 8);
-        byte lobyte = (byte) (value - (hibyte << 8));
-        ppCommand(0x40+channel, hibyte, lobyte, 0);
+
+        byte hiByte = (byte) (value >> 8);
+        byte loByte = (byte) (value - (hiByte << 8));
+
+        ppCommand(0x40+channel, hiByte, loByte, 0);
     }
 
 
@@ -244,9 +267,11 @@ public class DAQCPlate extends PiPlate {
      */
     public int getPWM(int channel) throws InvalidParameterException {
         validatePWMChannel(channel);
-        byte [] resp = ppCommand(0x40+channel+2, 0, 0, 2);
-        int value = (256 * resp[0] + resp[1]);
-        return value;
+
+        // TODO: How do we want to handle no response?
+        var resp = ppCommand(0x40+channel+2, 0, 0, 2).orElse(new byte[0]);
+
+        return (256 * resp[0] + resp[1]);
     }
 
 
@@ -258,7 +283,9 @@ public class DAQCPlate extends PiPlate {
      */
     public void setDAC(int channel, double value) throws InvalidParameterException {
         if (value < 0 || value > 4.095) throw new InvalidParameterException("ERROR: DAC argument out of range - must be between 0 and 4.095 volts");
+
         value = value / (vccValue * 1024);
+
         this.setPWM(channel, (int) value);
     }
 
@@ -271,7 +298,8 @@ public class DAQCPlate extends PiPlate {
      */
     double getDAC (int channel) throws InvalidParameterException {
         int value = getPWM(channel);
-        return (value * vccValue) / 1023;
+
+        return (double) (value * vccValue) / 1023;
     }
 
 
@@ -312,8 +340,8 @@ public class DAQCPlate extends PiPlate {
      * @throws InvalidParameterException
      */
     int getLED(BiColorLED led) {
-        byte[] resp = ppCommand(0x63, led.getValue(), 0, 1);
-        return resp[0];
+        // TODO: How do we want to handle no response?
+        return ppCommand(0x63, led.getValue(), 0, 1).orElse(new byte[0])[0];
     }
 
 

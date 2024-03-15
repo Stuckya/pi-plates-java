@@ -1,7 +1,7 @@
 # Pi Plates library
-A library to interact with Pi-Plates from Java.
+A library to interact with Pi-Plates using Java.
 
-Pi-Plates are a family of stackable and interchangeable add-on circuit boards that allow you to interact with the outside world using your Raspberry Pi (http://www.pi-plates.com)
+Pi-Plates are a family of stackable and interchangeable add-on circuit boards that allow you to interact with the outside world using your Raspberry Pi (http://www.pi-plates.com).
 
 ### Requirements
 Since this code uses the Pi4J library to control GPIO pins and the SPI bus, which interacts directly with the SoC's registers, your code **must** run as root for now.
@@ -13,7 +13,9 @@ I recommend creating a script to build your code locally, transfer it to your Ra
 ### Usage
 The library implements two classes that act as interfaces to the two types of Pi-Plates currently supported:
 * com.nahuellofeudo.piplates.daqcplate.DAQCPlate
+* com.nahuellofeudo.piplates.DIGIPlate
 * com.nahuellofeudo.piplates.relayplate.RELAYPlate
+* com.nahuellofeudo.piplates.relayplate.RELAYPlate2
 
 You interact with a plate by creating an instance of the corresponding class and passing the plate's address to the constructor. For example, to interact with a DAQC-Plate configured on address 2, you would do:
 
@@ -32,20 +34,12 @@ The interfaces themselves are modeled following the same patterns as Pi-Plates' 
 All methods include Javadocs with short descriptions of what they do and how to use them.
 
 ### Installation
-The library is published as a Maven dependency on Maven Central. Just include the following dependency in your POM.XML:
-
-    <dependency>
-        <groupId>com.nahuellofeudo</groupId>
-        <artifactId>piplates</artifactId>
-        <version>0.1.1</version>
-    </dependency>
-
-### Known bugs and limitations
-Only DAQCPlate and RELAYPlate are supported, as those are the only ones I personally have. If you want support for MOTORplate feel free to send me one :-)
-
-The library is **SLOW**. I haven't optimized the communication with the different plates yet, so there are many delays that may be longer than necessary or not necessary at all. All communication is synchronized, though, so you can call all methods concurrently and they will execute one at a time and in order.
+The library has not yet been published and is currently considered experimental.
 
 This is the first public release of this code, so expect the interfaces to change slightly in future releases.
+
+### Known bugs and limitations
+Only DAQCPlate, DIGIPlate, RELAYPlate, and RELAYPlate2 are currently supported.
 
 ### License
 The code is licensed under the GPL license (https://www.gnu.org/licenses/gpl.txt)
