@@ -29,7 +29,7 @@ public class RELAYPlate extends BaseRELAYPlate {
     @Override
     public void relayOn(int relay) {
         validateRelay(relay);
-        ppCommand(RelayCommand.RELAY_ON.getCode(), relay, 0, 0);
+        sendCommand(RelayCommand.RELAY_ON.getCode(), relay, 0);
     }
 
     /**
@@ -39,7 +39,7 @@ public class RELAYPlate extends BaseRELAYPlate {
     @Override
     public void relayOff(int relay) {
         validateRelay(relay);
-        ppCommand(RelayCommand.RELAY_OFF.getCode(), relay, 0, 0);
+        sendCommand(RelayCommand.RELAY_OFF.getCode(), relay, 0);
     }
 
     /**
@@ -49,7 +49,7 @@ public class RELAYPlate extends BaseRELAYPlate {
     @Override
     public void relayToggle(int relay) {
         validateRelay(relay);
-        ppCommand(RelayCommand.RELAY_TOGGLE.getCode(), relay, 0, 0);
+        sendCommand(RelayCommand.RELAY_TOGGLE.getCode(), relay, 0);
     }
 
     /**
@@ -60,7 +60,7 @@ public class RELAYPlate extends BaseRELAYPlate {
     public void relayAll(int relays) {
         if (relays < 0 || relays > 127)
             throw new InvalidParameterException("Relays parameter must be between 0 and 127");
-        ppCommand(RelayCommand.RELAY_ALL.getCode(), relays, 0, 0);
+        sendCommand(RelayCommand.RELAY_ALL.getCode(), relays, 0);
     }
 
     /**
@@ -69,16 +69,14 @@ public class RELAYPlate extends BaseRELAYPlate {
      */
     @Override
     public int relayState() {
-        // TODO: Handle empty better
-        byte [] resp = ppCommand(RelayCommand.RELAY_STATE.getCode(), 0, 0, 1).orElse(new byte[0]);
-        return resp[0];
+        return sendQuery(RelayCommand.RELAY_STATE.getCode(), 0, 0, 1)[0];
     }
 
     /**
      * Resets the board to power-on state
      */
     public void reset() throws InterruptedException {
-        ppCommand(0x0F, 0, 0, 0);
+        sendCommand(0x0F, 0, 0);
         Thread.sleep(100);
     }
 

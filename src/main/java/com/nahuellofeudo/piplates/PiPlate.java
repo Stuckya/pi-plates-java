@@ -14,10 +14,10 @@ import com.pi4j.io.spi.SpiBus;
 import com.pi4j.io.spi.SpiConfig;
 
 import java.time.Duration;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.stream.IntStream;
 
 public abstract class PiPlate {
 
@@ -72,14 +72,9 @@ public abstract class PiPlate {
         }
     }
 
-    /**
-     * Configures the GPIO pins for Frame, SRQ Interrupt, and Ack
-     * Initializes the SPI bus
-     */
     private void initializeGPIO(Context pi4j) {
-        if (frame != null) {
-            return; // Already initialized (static resources shared across instances)
-        }
+        if (frame != null) return;
+
         frame = pi4j.create(buildFrameConfig(pi4j));
         serviceRequest = pi4j.create(buildSRQConfig(pi4j));
         ack = pi4j.create(buildAckConfig(pi4j));
@@ -139,15 +134,27 @@ public abstract class PiPlate {
         serviceRequest.addListener(func::accept);
     }
 
+    /* --------- SPI Communication --------- */
+
     /**
-     * Send a command to a plate, optionally returning a response
-     * @param command command (plate-dependent)
-     * @param parameter1 1st parameter (command-dependent)
-     * @param parameter2 2nd parameter (command-dependent)
-     * @param bytesToReturn number of bytes to read back from the plate as a response
-     * @return Optionally return an array of bytes with the plate's response
+     * Sends a command to the plate with no response expected.
+     * Equivalent to Python library's {@code ppCMD(addr, cmd, param1, param2, 0)}.
      */
-    public Optional<byte[]> ppCommand(int command, int parameter1, int parameter2, int bytesToReturn) {
+    public void sendCommand(int command, int parameter1, int parameter2) {
+        executeCommand(command, parameter1, parameter2, 0);
+    }
+
+    /**
+     * Sends a command to the plate and returns the response bytes.
+     * Equivalent to Python library's {@code ppCMD(addr, cmd, param1, param2, bytesToReturn)}.
+     * @param bytesToReturn number of data bytes expected (must be > 0)
+     * @return the response data bytes (checksum already validated and stripped)
+     */
+    public byte[] sendQuery(int command, int parameter1, int parameter2, int bytesToReturn) {
+        return executeCommand(command, parameter1, parameter2, bytesToReturn);
+    }
+
+    private byte[] executeCommand(int command, int parameter1, int parameter2, int bytesToReturn) {
         byte[] packet = new byte[]{
                 (byte) (getBaseAddress() + address),
                 (byte) command,
@@ -158,14 +165,14 @@ public abstract class PiPlate {
         synchronized (PiPlate.class) {
             frame.high();
             try {
-                sendCommand(packet);
+                transferPacket(packet);
 
                 if (acknowledgmentTimedOut(COMMAND_TIMEOUT)) {
                     throw new TimeoutException("Command acknowledgment timed out.");
                 }
 
                 if (bytesToReturn == 0) {
-                    return Optional.empty();
+                    return null;
                 }
 
                 if (acknowledgmentTimedOut(DATA_TIMEOUT)) {
@@ -175,7 +182,6 @@ public abstract class PiPlate {
                 var response = new byte[bytesToReturn + 1];
                 readResponse(response);
 
-                // Validate checksum: ~checksum_byte & 0xFF == sum_of_data_bytes & 0xFF
                 int sum = 0;
                 for (int i = 0; i < bytesToReturn; i++) {
                     sum += unsigned(response[i]);
@@ -187,14 +193,14 @@ public abstract class PiPlate {
 
                 var data = new byte[bytesToReturn];
                 System.arraycopy(response, 0, data, 0, bytesToReturn);
-                return Optional.of(data);
+                return data;
             } finally {
                 frame.low();
             }
         }
     }
 
-    private void sendCommand(byte[] packet) {
+    private void transferPacket(byte[] packet) {
         spi.transfer(packet, packet.length);
     }
 
@@ -212,7 +218,6 @@ public abstract class PiPlate {
                 }
 
                 try {
-                    // suspend thread until notified or timeout.
                     TimeUnit.NANOSECONDS.timedWait(acknowledged, remainingNanos);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -233,87 +238,70 @@ public abstract class PiPlate {
         }
     }
 
+    /* --------- System Functions --------- */
+
     /**
      * Ping the plate
-     * @return address + 8 if the plate is available
+     * @return address byte if the plate is available
      * @throws PiPlateException when plate is missing
      */
     public byte getAddress() throws PiPlateException {
-        var response = ppCommand(COMMAND_GET_ADDRESS, 0, 0, 1);
-
-        if (response.isEmpty()) {
-            // stop execution.
-            throw new PiPlateException("PiPlate not found");
-        }
-
-        return response.get()[0];
+        return sendQuery(COMMAND_GET_ADDRESS, 0, 0, 1)[0];
     }
 
     /**
      * Returns the hardware revision.
      * Equivalent to Python library's {@code getHWrev(addr)}.
-     * @return Double containing hardware revision of the plate
-     * @throws PiPlateException when revision command fails
      */
     public double getHardwareRevision() throws PiPlateException {
-        return getRevision(COMMAND_GET_HW_REVISION, "Failed to retrieve hardware revision");
+        return extractRevision(sendQuery(COMMAND_GET_HW_REVISION, 0, 0, 1)[0]);
     }
 
     /**
      * Returns the firmware version of the plate.
      * Equivalent to Python library's {@code getFWrev(addr)}.
-     * @return a double with the firmware version
-     * @throws PiPlateException when revision command fails
      */
     public double getFirmwareRevision() throws PiPlateException {
-        return getRevision(COMMAND_GET_FW_REVISION, "Failed to retrieve firmware revision");
-    }
-
-    private double getRevision(int command, String errorMessage) throws PiPlateException {
-        var response = ppCommand(command, 0, 0, 1);
-
-        if (response.isEmpty()) {
-            // TODO: do we want to stop execution?
-            throw new PiPlateException(errorMessage);
-        }
-
-        return extractRevision(response.get()[0]);
+        return extractRevision(sendQuery(COMMAND_GET_FW_REVISION, 0, 0, 1)[0]);
     }
 
     private double extractRevision(byte revisionByte) {
         int whole = (revisionByte & REVISION_WHOLE_MASK) >> 4;
         int point = revisionByte & REVISION_POINT_MASK;
-
         return whole + (point / 10.0);
     }
 
     /**
      * Reads and returns the board's identifier string.
      * Command 0x01 is universal across all Pi-Plates board types.
-     * @return a string ID read from the board
      */
     public String getId() {
         int ID_LENGTH = 20;
-        return ppCommand(0x01, 0, 0, ID_LENGTH)
-                .map(resp -> {
-                    int length = ID_LENGTH;
-                    for (int x = 0; x < ID_LENGTH; x++) {
-                        if (resp[x] == 0) {
-                            length = x;
-                            break;
-                        }
-                    }
-                    return new String(resp, 0, length);
-                })
-                .orElse("");
+        byte[] resp = sendQuery(0x01, 0, 0, ID_LENGTH);
+        int length = IntStream.range(0, ID_LENGTH)
+                .filter(i -> resp[i] == 0)
+                .findFirst()
+                .orElse(ID_LENGTH);
+        return new String(resp, 0, length);
+    }
+
+    /* --------- Validation Utilities --------- */
+
+    /**
+     * Validates that a value is within an inclusive range.
+     * @param value the value to validate
+     * @param min minimum valid value (inclusive)
+     * @param max maximum valid value (inclusive)
+     * @param name description for the error message
+     */
+    protected void validateRange(int value, int min, int max, String name) throws InvalidParameterException {
+        if (value < min || value > max) {
+            throw new InvalidParameterException(name + " must be in the range [" + min + ".." + max + "]");
+        }
     }
 
     /**
-     * Java does not support unsigned values. Bytes in the range 0..255 are interpreted as signed bytes in the range (-128..127).
-     * This method converts a byte (0..255) into a Java int with the unsigned value represented by val (0..255)
-     * This is necessary so that math with values > 127 does not fail
-     * @param val the value to convert to unsigned.
-     * @return a 32-bit int with the unsigned value of val
+     * Converts a signed byte to an unsigned int (0-255).
      */
     public int unsigned(byte val) {
         return val & 0xFF;

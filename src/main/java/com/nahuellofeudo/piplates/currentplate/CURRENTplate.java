@@ -34,7 +34,7 @@ public class CURRENTplate extends PiPlate {
      */
     public double getCurrent(int channel) throws InvalidParameterException {
         validateChannel(channel);
-        var resp = ppCommand(0x30, channel - 1, 0, 2).orElse(new byte[0]);
+        var resp = sendQuery(0x30, channel - 1, 0, 2);
         double value = 256.0 * unsigned(resp[0]) + unsigned(resp[1]);
         return Math.round(value * 24.0 / 65536.0 * 10000.0) / 10000.0;
     }
@@ -45,7 +45,7 @@ public class CURRENTplate extends PiPlate {
      * @return array of 8 current values in milliamps
      */
     public double[] getCurrentAll() {
-        var resp = ppCommand(0x31, 0, 0, 16).orElse(new byte[0]);
+        var resp = sendQuery(0x31, 0, 0, 16);
         double[] values = new double[8];
         for (int i = 0; i < 8; i++) {
             double raw = 256.0 * unsigned(resp[2 * i]) + unsigned(resp[2 * i + 1]);
@@ -64,31 +64,31 @@ public class CURRENTplate extends PiPlate {
         if (freq != 50 && freq != 60) {
             throw new InvalidParameterException("Frequency must be 50 or 60");
         }
-        ppCommand(0x3F, freq, 0, 0);
+        sendCommand(0x3F, freq, 0);
     }
 
     /* --------- LED Functions --------- */
 
     public void setLed() {
-        ppCommand(0x60, 0, 0, 0);
+        sendCommand(0x60, 0, 0);
     }
 
     public void clearLed() {
-        ppCommand(0x61, 0, 0, 0);
+        sendCommand(0x61, 0, 0);
     }
 
     public void toggleLed() {
-        ppCommand(0x62, 0, 0, 0);
+        sendCommand(0x62, 0, 0);
     }
 
     /* --------- Interrupt Functions --------- */
 
     public void interruptEnable() {
-        ppCommand(0x04, 0, 0, 0);
+        sendCommand(0x04, 0, 0);
     }
 
     public void interruptDisable() {
-        ppCommand(0x05, 0, 0, 0);
+        sendCommand(0x05, 0, 0);
     }
 
     /**
@@ -96,16 +96,16 @@ public class CURRENTplate extends PiPlate {
      * @return interrupt flags byte
      */
     public int getInterruptFlags() {
-        var resp = ppCommand(0x06, 0, 0, 1).orElse(new byte[0]);
+        var resp = sendQuery(0x06, 0, 0, 1);
         return unsigned(resp[0]);
     }
 
     public void setInterrupt() {
-        ppCommand(0xF4, 0, 0, 0);
+        sendCommand(0xF4, 0, 0);
     }
 
     public void clearInterrupt() {
-        ppCommand(0xF5, 0, 0, 0);
+        sendCommand(0xF5, 0, 0);
     }
 
     /* --------- Calibration Functions --------- */
@@ -117,7 +117,7 @@ public class CURRENTplate extends PiPlate {
      */
     public int calibrationReadByte(int ptr) throws InvalidParameterException {
         validateByteRange(ptr, "Calibration pointer");
-        var resp = ppCommand(0xFD, 2, ptr, 1).orElse(new byte[0]);
+        var resp = sendQuery(0xFD, 2, ptr, 1);
         return unsigned(resp[0]);
     }
 
@@ -127,14 +127,14 @@ public class CURRENTplate extends PiPlate {
      */
     public void calibrationWriteByte(int data) throws InvalidParameterException {
         validateByteRange(data, "Calibration data");
-        ppCommand(0xFD, 1, data, 0);
+        sendCommand(0xFD, 1, data);
     }
 
     /**
      * Erases the calibration flash memory block
      */
     public void calibrationEraseBlock() {
-        ppCommand(0xFD, 0, 0, 0);
+        sendCommand(0xFD, 0, 0);
     }
 
     /* --------- System Functions --------- */
@@ -143,21 +143,17 @@ public class CURRENTplate extends PiPlate {
      * Resets the board to power-on state
      */
     public void reset() throws InterruptedException {
-        ppCommand(0x0F, 0, 0, 0);
+        sendCommand(0x0F, 0, 0);
         Thread.sleep(1100);
     }
 
     /* --------- Validation --------- */
 
     private void validateChannel(int channel) throws InvalidParameterException {
-        if (channel < 1 || channel > 8) {
-            throw new InvalidParameterException("4-20mA input channel must be in the range [1..8]");
-        }
+        validateRange(channel, 1, 8, "Current input channel");
     }
 
     private void validateByteRange(int value, String name) throws InvalidParameterException {
-        if (value < 0 || value > 255) {
-            throw new InvalidParameterException(name + " must be in the range [0..255]");
-        }
+        validateRange(value, 0, 255, name);
     }
 }

@@ -17,7 +17,7 @@ import java.util.Arrays;
 /**
  * Test helper that enables end-to-end testing of PiPlate commands using pi4j-plugin-mock.
  *
- * Sets ACK pin LOW so ppCommand never times out, and provides methods to
+ * Sets ACK pin LOW so sendQuery never times out, and provides methods to
  * pre-load SPI response data and verify command bytes sent to the bus.
  */
 public class PiPlateTestHelper {
@@ -49,12 +49,12 @@ public class PiPlateTestHelper {
         this.context = context;
         this.mockSpi = (MockSpi) context.io("SPI1");
         this.mockAck = (MockDigitalInput) context.io("Ack");
-        // Keep ACK LOW so ppCommand's acknowledgmentTimedOut() returns immediately
+        // Keep ACK LOW so sendQuery's acknowledgmentTimedOut() returns immediately
         mockAck.mockState(DigitalState.LOW);
     }
 
     /**
-     * Pre-loads the mock SPI buffer so ppCommand can read response data.
+     * Pre-loads the mock SPI buffer so sendQuery can read response data.
      * Adds 4 padding bytes (consumed by sendCommand's transfer) followed by the
      * data bytes and a valid checksum byte.
      *
@@ -89,7 +89,7 @@ public class PiPlateTestHelper {
 
     /**
      * Reads the first 4 bytes from the mock SPI buffer — the command packet
-     * that was sent by ppCommand: [baseAddr+addr, command, param1, param2].
+     * that was sent by sendQuery: [baseAddr+addr, command, param1, param2].
      */
     public byte[] getLastCommandPacket() {
         byte[] all = mockSpi.readEntireMockBuffer();

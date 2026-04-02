@@ -35,7 +35,7 @@ public class DIGIPlate extends PiPlate {
      */
     public boolean getDigitalInput(int bit) throws InvalidParameterException {
         validateDINBit(bit - 1);
-        var resp = ppCommand(0x20, bit - 1, 0, 1).orElse(new byte[0]);
+        var resp = sendQuery(0x20, bit - 1, 0, 1);
         return resp[0] > 0;
     }
 
@@ -44,7 +44,7 @@ public class DIGIPlate extends PiPlate {
      * @return 8-bit value with all input states
      */
     public int getDigitalInputAll() {
-        var resp = ppCommand(0x25, 0, 0, 1).orElse(new byte[0]);
+        var resp = sendQuery(0x25, 0, 0, 1);
         return unsigned(resp[0]);
     }
 
@@ -54,34 +54,34 @@ public class DIGIPlate extends PiPlate {
         validateDINBit(bit - 1);
         switch (edge) {
             case FALLING_EDGE:
-                ppCommand(0x21, bit - 1, 0, 0);
+                sendCommand(0x21, bit - 1, 0);
                 break;
             case RISING_EDGE:
-                ppCommand(0x22, bit - 1, 0, 0);
+                sendCommand(0x22, bit - 1, 0);
                 break;
             case BOTH_EDGES:
-                ppCommand(0x23, bit - 1, 0, 0);
+                sendCommand(0x23, bit - 1, 0);
                 break;
         }
     }
 
     public void disableDigitalInputEvent(int bit) throws InvalidParameterException {
         validateDINBit(bit - 1);
-        ppCommand(0x24, bit - 1, 0, 0);
+        sendCommand(0x24, bit - 1, 0);
     }
 
     /**
      * Enables SRQ pin on DIGIplate, will pull down on pin when event occurs
      */
     public void enableEvents() {
-        ppCommand(0x04, 0, 0, 0);
+        sendCommand(0x04, 0, 0);
     }
 
     /**
      * Disables SRQ pin on DIGIplate
      */
     public void disableEvents() {
-        ppCommand(0x05, 0, 0, 0);
+        sendCommand(0x05, 0, 0);
     }
 
     public boolean checkForEvents() {
@@ -93,7 +93,7 @@ public class DIGIPlate extends PiPlate {
      * @return 16-bit event flags (upper 8 = falling, lower 8 = rising)
      */
     public int getEventFlags() {
-        byte[] resp = ppCommand(0x06, 0, 0, 2).orElse(new byte[0]);
+        byte[] resp = sendQuery(0x06, 0, 0, 2);
         return (unsigned(resp[0]) << 8) + unsigned(resp[1]);
     }
 
@@ -107,10 +107,10 @@ public class DIGIPlate extends PiPlate {
     public double getFrequency(int channel) throws InvalidParameterException {
         validateFREQChannel(channel);
         // Get upper 16 bits
-        var upper = ppCommand(0xC0, 0, channel - 1, 2).orElse(new byte[0]);
+        var upper = sendQuery(0xC0, 0, channel - 1, 2);
         long counts = ((long) unsigned(upper[0]) << 24) + ((long) unsigned(upper[1]) << 16);
         // Get lower 16 bits
-        var lower = ppCommand(0xC0, 1, channel - 1, 2).orElse(new byte[0]);
+        var lower = sendQuery(0xC0, 1, channel - 1, 2);
         counts += ((long) unsigned(lower[0]) << 8) + unsigned(lower[1]);
 
         if (counts > 0) {
@@ -134,15 +134,15 @@ public class DIGIPlate extends PiPlate {
     /* --------- LED Functions --------- */
 
     public void setLed() {
-        ppCommand(0x60, 0, 0, 0);
+        sendCommand(0x60, 0, 0);
     }
 
     public void clearLed() {
-        ppCommand(0x61, 0, 0, 0);
+        sendCommand(0x61, 0, 0);
     }
 
     public void toggleLed() {
-        ppCommand(0x62, 0, 0, 0);
+        sendCommand(0x62, 0, 0);
     }
 
     /* --------- System Functions --------- */
@@ -151,25 +151,25 @@ public class DIGIPlate extends PiPlate {
      * Resets the board to power-on state
      */
     public void reset() throws InterruptedException {
-        ppCommand(0x0F, 0, 0, 0);
+        sendCommand(0x0F, 0, 0);
         Thread.sleep(100);
     }
 
     public void setInterrupt() {
-        ppCommand(0xF4, 0, 0, 0);
+        sendCommand(0xF4, 0, 0);
     }
 
     public void clearInterrupt() {
-        ppCommand(0xF5, 0, 0, 0);
+        sendCommand(0xF5, 0, 0);
     }
 
     /* --------- Validation --------- */
 
     private void validateDINBit(int bit) throws InvalidParameterException {
-        if (bit < 0 || bit > 7) throw new InvalidParameterException("Bit number parameter must be in the range [0..7]");
+        validateRange(bit, 0, 7, "Digital input bit");
     }
 
     private void validateFREQChannel(int channel) throws InvalidParameterException {
-        if (channel < 1 || channel > 6) throw new InvalidParameterException("Frequency input channel must be in the range [1..6]");
+        validateRange(channel, 1, 6, "Frequency input channel");
     }
 }

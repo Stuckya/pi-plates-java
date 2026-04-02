@@ -56,7 +56,7 @@ public class POWERplate24 extends PiPlate {
      * @return voltage in volts
      */
     public double getVoltageIn() {
-        var resp = ppCommand(0x30, 0, 0, 2).orElse(new byte[0]);
+        var resp = sendQuery(0x30, 0, 0, 2);
         int value = 256 * unsigned(resp[0]) + unsigned(resp[1]);
         return Math.round(value * 2.4 * 2.5 / 4095.0 * 1000.0) / 1000.0;
     }
@@ -66,7 +66,7 @@ public class POWERplate24 extends PiPlate {
      * @return voltage in volts
      */
     public double getHighVoltageIn() {
-        var resp = ppCommand(0x30, 1, 0, 2).orElse(new byte[0]);
+        var resp = sendQuery(0x30, 1, 0, 2);
         int value = 256 * unsigned(resp[0]) + unsigned(resp[1]);
         return Math.round(value * 2.4 * 12.4573 / 4095.0 * 1000.0) / 1000.0;
     }
@@ -77,7 +77,7 @@ public class POWERplate24 extends PiPlate {
      * @return raw 12-bit ADC value
      */
     public int getAnalogInput(int channel) {
-        var resp = ppCommand(0x30, channel, 0, 2).orElse(new byte[0]);
+        var resp = sendQuery(0x30, channel, 0, 2);
         return 256 * unsigned(resp[0]) + unsigned(resp[1]);
     }
 
@@ -94,18 +94,27 @@ public class POWERplate24 extends PiPlate {
     /* --------- RTC and Schedule Functions --------- */
 
     /**
-     * Sets the on-board real-time clock to the current time
+     * Sets the on-board real-time clock to the specified time.
+     * Equivalent to Python library's {@code setRTC(addr, zone)}.
+     * @param time the time to set
+     */
+    public void setRealTimeClock(LocalTime time) {
+        sendCommand(0xD1, time.getHour(), 0);
+        sendCommand(0xD0, time.getMinute(), time.getSecond());
+    }
+
+    /**
+     * Sets the on-board real-time clock to the current time.
      * @param zone LOCAL for local time, GREENWICH for UTC
      */
-    public void setRealTimeClock(TimeZoneType zone) {
+    public void setRealTimeClockToNow(TimeZoneType zone) {
         LocalTime time;
         if (zone == TimeZoneType.LOCAL) {
             time = LocalTime.now();
         } else {
             time = ZonedDateTime.now(ZoneOffset.UTC).toLocalTime();
         }
-        ppCommand(0xD1, time.getHour(), 0, 0);
-        ppCommand(0xD0, time.getMinute(), time.getSecond(), 0);
+        setRealTimeClock(time);
     }
 
     /**
@@ -115,25 +124,25 @@ public class POWERplate24 extends PiPlate {
      * @param second second (0-59)
      */
     public void setWakeTime(int hour, int minute, int second) throws InvalidParameterException {
-        if (hour < 0 || hour > 23) throw new InvalidParameterException("Hour must be in range [0..23]");
-        if (minute < 0 || minute > 59) throw new InvalidParameterException("Minute must be in range [0..59]");
-        if (second < 0 || second > 59) throw new InvalidParameterException("Second must be in range [0..59]");
-        ppCommand(0xD3, hour, 0, 0);
-        ppCommand(0xD2, minute, second, 0);
+        validateRange(hour, 0, 23, "Hour");
+        validateRange(minute, 0, 59, "Minute");
+        validateRange(second, 0, 59, "Second");
+        sendCommand(0xD3, hour, 0);
+        sendCommand(0xD2, minute, second);
     }
 
     /**
      * Enables scheduled wake-up
      */
     public void enableWake() {
-        ppCommand(0xD5, 1, 0, 0);
+        sendCommand(0xD5, 1, 0);
     }
 
     /**
      * Disables scheduled wake-up
      */
     public void disableWake() {
-        ppCommand(0xD5, 0, 0, 0);
+        sendCommand(0xD5, 0, 0);
     }
 
     /**
@@ -141,7 +150,7 @@ public class POWERplate24 extends PiPlate {
      * @return 0 = initial power up, 1 = pushbutton, 2 = scheduled wake
      */
     public int getWakeSource() {
-        var resp = ppCommand(0x57, 0, 0, 1).orElse(new byte[0]);
+        var resp = sendQuery(0x57, 0, 0, 1);
         return unsigned(resp[0]);
     }
 
@@ -154,18 +163,18 @@ public class POWERplate24 extends PiPlate {
      */
     public void setLed(LedColor color) {
         // Clear both LEDs
-        ppCommand(0x61, 0, 0, 0); // clear green
-        ppCommand(0x61, 1, 0, 0); // clear red
+        sendCommand(0x61, 0, 0); // clear green
+        sendCommand(0x61, 1, 0); // clear red
         switch (color) {
             case RED:
-                ppCommand(0x60, 1, 0, 0);
+                sendCommand(0x60, 1, 0);
                 break;
             case GREEN:
-                ppCommand(0x60, 0, 0, 0);
+                sendCommand(0x60, 0, 0);
                 break;
             case YELLOW:
-                ppCommand(0x60, 0, 0, 0);
-                ppCommand(0x60, 1, 0, 0);
+                sendCommand(0x60, 0, 0);
+                sendCommand(0x60, 1, 0);
                 break;
             case OFF:
                 // Already cleared
@@ -178,7 +187,7 @@ public class POWERplate24 extends PiPlate {
      * @param mode the LED mode
      */
     public void setLedMode(LedMode mode) {
-        ppCommand(0x6F, mode.getValue(), 0, 0);
+        sendCommand(0x6F, mode.getValue(), 0);
     }
 
     /* --------- Fan Functions --------- */
@@ -187,14 +196,14 @@ public class POWERplate24 extends PiPlate {
      * Enables the cooling fan (persistent)
      */
     public void setFanOn() {
-        ppCommand(0xEF, 0, 0, 0);
+        sendCommand(0xEF, 0, 0);
     }
 
     /**
      * Disables the cooling fan (persistent)
      */
     public void setFanOff() {
-        ppCommand(0xEE, 0, 0, 0);
+        sendCommand(0xEE, 0, 0);
     }
 
     /**
@@ -202,7 +211,7 @@ public class POWERplate24 extends PiPlate {
      * @return 1 if fan is on, 0 if off
      */
     public int getFanState() {
-        var resp = ppCommand(0xED, 0, 0, 1).orElse(new byte[0]);
+        var resp = sendQuery(0xED, 0, 0, 1);
         return unsigned(resp[0]);
     }
 
@@ -213,7 +222,7 @@ public class POWERplate24 extends PiPlate {
      * @return 1 if pressed, 0 if released
      */
     public int getSwitchState() {
-        var resp = ppCommand(0x50, 0, 0, 1).orElse(new byte[0]);
+        var resp = sendQuery(0x50, 0, 0, 1);
         return unsigned(resp[0]);
     }
 
@@ -222,10 +231,8 @@ public class POWERplate24 extends PiPlate {
      * @param delay delay in seconds (10-240)
      */
     public void setShutdownDelay(int delay) throws InvalidParameterException {
-        if (delay < 10 || delay > 240) {
-            throw new InvalidParameterException("Shutdown delay must be between 10 and 240 seconds");
-        }
-        ppCommand(0x55, delay, 0, 0);
+        validateRange(delay, 10, 240, "Shutdown delay (seconds)");
+        sendCommand(0x55, delay, 0);
     }
 
     /**
@@ -237,37 +244,39 @@ public class POWERplate24 extends PiPlate {
         if (getFirmwareRevision() >= 1.2 && bypass) {
             bparg = 1;
         }
-        ppCommand(0x53, bparg, 0, 0);
+        sendCommand(0x53, bparg, 0);
     }
 
     /**
      * Disables the pushbutton power switch control
      */
     public void disablePowerSwitch() {
-        ppCommand(0x54, 0, 0, 0);
+        sendCommand(0x54, 0, 0);
     }
 
     /**
      * Initiates the power-down sequence
      */
     public void powerOff() {
-        ppCommand(0x56, 0, 0, 0);
+        sendCommand(0x56, 0, 0);
     }
 
     /* --------- Power Status Functions --------- */
 
     /**
-     * Enables STAT pin to signal power status changes
+     * Enables the STAT pin interrupt to signal power status changes.
+     * Equivalent to Python library's {@code statEnable(addr)}.
      */
-    public void statusEnable() {
-        ppCommand(0x04, 0, 0, 0);
+    public void enableStatusInterrupt() {
+        sendCommand(0x04, 0, 0);
     }
 
     /**
-     * Disables STAT pin signaling
+     * Disables the STAT pin interrupt.
+     * Equivalent to Python library's {@code statDisable(addr)}.
      */
-    public void statusDisable() {
-        ppCommand(0x05, 0, 0, 0);
+    public void disableStatusInterrupt() {
+        sendCommand(0x05, 0, 0);
     }
 
     /**
@@ -275,7 +284,7 @@ public class POWERplate24 extends PiPlate {
      * @return power change status byte
      */
     public int getPowerChange() {
-        var resp = ppCommand(0x06, 0, 0, 1).orElse(new byte[0]);
+        var resp = sendQuery(0x06, 0, 0, 1);
         return unsigned(resp[0]);
     }
 
@@ -284,7 +293,7 @@ public class POWERplate24 extends PiPlate {
      * @return power status byte (bit 0=NO_AC, bit 1=LOW_BAT, bit 2=LOW_DC_IN)
      */
     public int getPowerStatus() {
-        var resp = ppCommand(0x07, 0, 0, 1).orElse(new byte[0]);
+        var resp = sendQuery(0x07, 0, 0, 1);
         return unsigned(resp[0]);
     }
 
@@ -294,7 +303,7 @@ public class POWERplate24 extends PiPlate {
      * Resets the board to power-on state
      */
     public void reset() throws InterruptedException {
-        ppCommand(0x0F, 0, 0, 0);
+        sendCommand(0x0F, 0, 0);
         Thread.sleep(1000);
     }
 
@@ -306,7 +315,7 @@ public class POWERplate24 extends PiPlate {
     public int readFlash(int flashAddress) {
         int p1 = flashAddress >> 8;
         int p2 = flashAddress & 0xFF;
-        var resp = ppCommand(0xFE, p1, p2, 1).orElse(new byte[0]);
+        var resp = sendQuery(0xFE, p1, p2, 1);
         return unsigned(resp[0]);
     }
 }

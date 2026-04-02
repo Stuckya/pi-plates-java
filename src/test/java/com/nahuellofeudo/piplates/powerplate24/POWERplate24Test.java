@@ -109,7 +109,7 @@ class POWERplate24Test {
         // 2. [0, 0xD0, minute, second]
         helper.preloadNoResponse();
         helper.preloadNoResponse();
-        plate.setRealTimeClock(TimeZoneType.LOCAL);
+        plate.setRealTimeClockToNow(TimeZoneType.LOCAL);
         byte[] allBytes = helper.getAllSpiBytes();
         // Two 4-byte commands = 8 bytes total
         assertTrue(allBytes.length >= 8, "Expected at least 8 SPI bytes for two commands");
@@ -396,7 +396,7 @@ class POWERplate24Test {
     @Test
     void statusEnableSendsCorrectCommand() {
         helper.preloadNoResponse();
-        plate.statusEnable();
+        plate.enableStatusInterrupt();
         assertArrayEquals(
                 new byte[]{(byte) (BASE_ADDR + PLATE_ADDR), 0x04, 0x00, 0x00},
                 helper.getLastCommandPacket()
@@ -406,7 +406,7 @@ class POWERplate24Test {
     @Test
     void statusDisableSendsCorrectCommand() {
         helper.preloadNoResponse();
-        plate.statusDisable();
+        plate.disableStatusInterrupt();
         assertArrayEquals(
                 new byte[]{(byte) (BASE_ADDR + PLATE_ADDR), 0x05, 0x00, 0x00},
                 helper.getLastCommandPacket()
