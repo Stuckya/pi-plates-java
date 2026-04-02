@@ -74,6 +74,14 @@ public class RELAYPlate extends BaseRELAYPlate {
         return resp[0];
     }
 
+    /**
+     * Resets the board to power-on state
+     */
+    public void reset() throws InterruptedException {
+        ppCommand(0x0F, 0, 0, 0);
+        Thread.sleep(100);
+    }
+
     @Override
     protected void validateRelay(int relay) {
         if (relay < 1 || relay > 7)
