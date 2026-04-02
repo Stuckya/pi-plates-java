@@ -23,6 +23,9 @@ public class DAQCPlate extends PiPlate {
 
     private void calibrateVCC() {
         try {
+            // getAnalogInput(8) returns rawAdc * 8 (×4 all channels, ×2 for ch8).
+            // This is intentional: rawAdc*8 * 4.096/4096 == rawAdc * 4.096/512,
+            // matching the Python library's getADC(8) which returns rawAdc * 4.096/1024 * 2.
             vcc = getAnalogInput(8) * 4.096 / 4096.0;
         } catch (Exception e) {
             vcc = 0;
@@ -147,7 +150,7 @@ public class DAQCPlate extends PiPlate {
                 dblTemp += 273;
                 break;
             case FAHRENHEIT:
-                dblTemp = dblTemp * 1.8 + 32.2;
+                dblTemp = dblTemp * 1.8 + 32.2; // 32.2 matches the Python pi-plates library (sensor calibration offset)
                 break;
         }
 

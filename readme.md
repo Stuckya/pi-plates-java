@@ -23,8 +23,8 @@ You interact with a plate by creating an instance of the corresponding class and
 
     // DAQC Plate on address 2
     DAQCPlate daqcPlate = new DAQCPlate(2);
-    double hwVersion = daqcPlate.getHWRev();
-    int analogValue = daqcPlate.getADC(0);
+    double hwVersion = daqcPlate.getHardwareRevision();
+    int analogValue = daqcPlate.getAnalogInput(0);
 
     // CURRENTplate on address 0
     CURRENTplate current = new CURRENTplate(0);
@@ -33,9 +33,9 @@ You interact with a plate by creating an instance of the corresponding class and
 
     // POWERplate24 (always address 0)
     POWERplate24 power = new POWERplate24();
-    double voltage = power.getHVin();          // Read high-voltage input
-    power.fanOn();                             // Enable cooling fan
-    power.setRTC(TimeZoneType.LOCAL);          // Set RTC to local time
+    double voltage = power.getHighVoltageIn();           // Read high-voltage input
+    power.setFanOn();                                    // Enable cooling fan
+    power.setRealTimeClockToNow(TimeZoneType.LOCAL);     // Set RTC to local time
 
 ### Custom Pi4J Context
 For advanced use cases (testing, custom providers, non-standard Pi setups), you can inject your own Pi4J context via the constructor:
