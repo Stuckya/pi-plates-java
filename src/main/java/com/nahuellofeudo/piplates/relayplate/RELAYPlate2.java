@@ -68,7 +68,7 @@ public class RELAYPlate2 extends BaseRELAYPlate {
      */
     @Override
     public int relayState() {
-        return sendQuery(RelayCommand.RELAY_STATE.getCode(), 0, 0, 1)[0];
+        return unsigned(sendQuery(RelayCommand.RELAY_STATE.getCode(), 0, 0, 1)[0]);
     }
 
     /**

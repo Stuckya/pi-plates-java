@@ -100,7 +100,14 @@ class RELAYPlateTest {
                 new byte[]{(byte) BASE_ADDR, 0x14, 0x00, 0x00},
                 helper.getLastCommandPacket()
         );
-        assertEquals(0x55, state & 0xFF);
+        assertEquals(0x55, state);
+    }
+
+    @Test
+    void relayStateReturnsUnsignedValue() {
+        helper.preloadResponse((byte) 0xFF);
+        int state = plate.relayState();
+        assertEquals(0xFF, state);
     }
 
     @Test

@@ -235,4 +235,85 @@ class DAQCPlateTest {
         assertThrows(InvalidParameterException.class, () -> plate.setPwm(0, 1024));
         assertThrows(InvalidParameterException.class, () -> plate.setPwm(2, 0));
     }
+
+    /* --------- Temperature Commands --------- */
+
+    @Test
+    void getTemperatureRejectsChannel8() {
+        assertThrows(InvalidParameterException.class,
+                () -> plate.getTemperature(8, TemperatureUnit.CELSIUS));
+    }
+
+    @Test
+    void getTemperatureRejectsNegativeChannel() {
+        assertThrows(InvalidParameterException.class,
+                () -> plate.getTemperature(-1, TemperatureUnit.CELSIUS));
+    }
+
+    @Test
+    void getTemperaturePositiveCelsius() throws Exception {
+        // 25.0°C: raw = 25 * 16 = 400 = 0x0190
+        helper.preloadNoResponse();                          // sendCommand(0x70, ...)
+        helper.preloadResponse((byte) 0x01, (byte) 0x90);   // sendQuery(0x71, ...)
+        double temp = plate.getTemperature(0, TemperatureUnit.CELSIUS);
+        assertEquals(25.0, temp, 0.001);
+    }
+
+    @Test
+    void getTemperatureNegativeCelsius() throws Exception {
+        // -10.0°C: raw two's complement = 0xFF60
+        helper.preloadNoResponse();
+        helper.preloadResponse((byte) 0xFF, (byte) 0x60);
+        double temp = plate.getTemperature(0, TemperatureUnit.CELSIUS);
+        assertEquals(-10.0, temp, 0.001);
+    }
+
+    @Test
+    void getTemperatureKelvin() throws Exception {
+        // 25.0°C = 298K
+        helper.preloadNoResponse();
+        helper.preloadResponse((byte) 0x01, (byte) 0x90);
+        double temp = plate.getTemperature(0, TemperatureUnit.KELVIN);
+        assertEquals(298.0, temp, 0.001);
+    }
+
+    @Test
+    void getTemperatureFahrenheit() throws Exception {
+        // 25.0°C = 25 * 1.8 + 32.2 = 77.2°F
+        helper.preloadNoResponse();
+        helper.preloadResponse((byte) 0x01, (byte) 0x90);
+        double temp = plate.getTemperature(0, TemperatureUnit.FAHRENHEIT);
+        assertEquals(77.2, temp, 0.001);
+    }
+
+    /* --------- DAC Commands --------- */
+
+    @Test
+    void setDacSendsCorrectPwmValue() {
+        // With vcc = 5.0V, setDac(0, 2.5) → dacValue = (int)(2.5 / 5.0 * 1024) = 512
+        // setPwm(0, 512): hiByte=2, loByte=0 → command 0x40
+        plate.vcc = 5.0;
+        helper.preloadNoResponse();
+        plate.setDac(0, 2.5);
+        assertArrayEquals(
+                new byte[]{(byte) BASE_ADDR, 0x40, 0x02, 0x00},
+                helper.getLastCommandPacket()
+        );
+    }
+
+    @Test
+    void getDacReturnsCorrectVoltage() {
+        // With vcc = 5.0V, getPwm returns 512 → getDac = 512 * 5.0 / 1023 ≈ 2.502
+        plate.vcc = 5.0;
+        helper.preloadResponse((byte) 0x02, (byte) 0x00);
+        double voltage = plate.getDac(0);
+        assertEquals(2.502, voltage, 0.001);
+    }
+
+    @Test
+    void setDacRejectsOutOfRange() {
+        plate.vcc = 5.0;
+        assertThrows(InvalidParameterException.class, () -> plate.setDac(0, -0.1));
+        assertThrows(InvalidParameterException.class, () -> plate.setDac(0, 4.096));
+    }
 }

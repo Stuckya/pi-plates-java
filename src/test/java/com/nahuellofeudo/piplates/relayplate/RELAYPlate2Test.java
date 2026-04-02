@@ -104,7 +104,7 @@ class RELAYPlate2Test {
                 new byte[]{(byte) (BASE_ADDR + PLATE_ADDR), 0x14, 0x00, 0x00},
                 helper.getLastCommandPacket()
         );
-        assertEquals(0xA5, state & 0xFF);
+        assertEquals(0xA5, state);
     }
 
     @Test

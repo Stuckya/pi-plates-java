@@ -151,6 +151,10 @@ public abstract class PiPlate {
      * @return the response data bytes (checksum already validated and stripped)
      */
     public byte[] sendQuery(int command, int parameter1, int parameter2, int bytesToReturn) {
+        if (bytesToReturn < 1) {
+            throw new InvalidParameterException(
+                    "bytesToReturn must be > 0; use sendCommand() for commands with no response");
+        }
         return executeCommand(command, parameter1, parameter2, bytesToReturn);
     }
 

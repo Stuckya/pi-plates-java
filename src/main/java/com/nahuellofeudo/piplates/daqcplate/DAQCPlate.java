@@ -8,8 +8,8 @@ import com.pi4j.context.Context;
 
 public class DAQCPlate extends PiPlate {
 
-    // The VCC Calibration value for ADC
-    int vccValue;
+    // VCC supply voltage in volts, used for DAC conversion (matches Python Vcc)
+    double vcc;
 
     public DAQCPlate(Context pi4jContext, int address) throws InvalidAddressException {
         super(pi4jContext, address);
@@ -23,9 +23,9 @@ public class DAQCPlate extends PiPlate {
 
     private void calibrateVCC() {
         try {
-            vccValue = getAnalogInput(8);
+            vcc = getAnalogInput(8) * 4.096 / 4096.0;
         } catch (Exception e) {
-            vccValue = 0;
+            vcc = 0;
         }
     }
 
@@ -124,30 +124,30 @@ public class DAQCPlate extends PiPlate {
      * @throws InterruptedException
      */
     public double getTemperature(int channel, TemperatureUnit unit) throws InvalidParameterException, InterruptedException {
-        validateAnalogIn(channel);
+        validateRange(channel, 0, 7, "Temperature sensor channel");
         sendCommand(0x70, channel, 0);
 
-        // TODO: What do do here?
         Thread.sleep(1000);
 
         var resp = sendQuery(0x71, channel, 0, 2);
 
         long temp = (long) unsigned(resp[0]) * 256 + unsigned(resp[1]);
 
-        // TODO: Condition always false?
-        if (temp > 0x8000) temp = temp ^ 0xFFFF;
-        temp = -(temp + 1);
+        if (temp > 0x8000) {
+            temp = temp ^ 0xFFFF;
+            temp = -(temp + 1);
+        }
 
-        double dblTemp = temp/16.0;
+        double dblTemp = temp / 16.0;
 
         switch (unit) {
             case CELSIUS:
                 break;
             case KELVIN:
-                dblTemp -= 273;
+                dblTemp += 273;
                 break;
             case FAHRENHEIT:
-                dblTemp = dblTemp * 1.8 + 32;
+                dblTemp = dblTemp * 1.8 + 32.2;
                 break;
         }
 
@@ -272,9 +272,9 @@ public class DAQCPlate extends PiPlate {
     public void setDac(int channel, double value) throws InvalidParameterException {
         if (value < 0 || value > 4.095) throw new InvalidParameterException("ERROR: DAC argument out of range - must be between 0 and 4.095 volts");
 
-        value = value / (vccValue * 1024);
+        int dacValue = (int) (value / vcc * 1024);
 
-        this.setPwm(channel, (int) value);
+        this.setPwm(channel, dacValue);
     }
 
 
@@ -284,10 +284,10 @@ public class DAQCPlate extends PiPlate {
      * @return the value of the output (0v to 4.095v)
      * @throws InvalidParameterException
      */
-    double getDac (int channel) throws InvalidParameterException {
+    double getDac(int channel) throws InvalidParameterException {
         int value = getPwm(channel);
 
-        return (double) (value * vccValue) / 1023;
+        return value * vcc / 1023;
     }
 
 
@@ -328,7 +328,7 @@ public class DAQCPlate extends PiPlate {
      * @throws InvalidParameterException
      */
     int getLed(BiColorLed led) {
-        return sendQuery(0x63, led.getValue(), 0, 1)[0];
+        return unsigned(sendQuery(0x63, led.getValue(), 0, 1)[0]);
     }
 
 

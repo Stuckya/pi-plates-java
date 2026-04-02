@@ -112,4 +112,18 @@ class PiPlateTest {
         String id = plate.getId();
         assertEquals("12345678901234567890", id);
     }
+
+    /* --------- sendQuery validation --------- */
+
+    @Test
+    void sendQueryRejectsZeroBytesToReturn() {
+        assertThrows(InvalidParameterException.class,
+                () -> plate.sendQuery(0x00, 0, 0, 0));
+    }
+
+    @Test
+    void sendQueryRejectsNegativeBytesToReturn() {
+        assertThrows(InvalidParameterException.class,
+                () -> plate.sendQuery(0x00, 0, 0, -1));
+    }
 }
