@@ -49,7 +49,7 @@ public class DAQCPlate extends PiPlate {
      * Disable triggering interrupts
      */
     public void intDisable() {
-        ppCommand(0x04, 0, 0, 0);
+        ppCommand(0x05, 0, 0, 0);
     }
 
     /**
@@ -347,8 +347,7 @@ public class DAQCPlate extends PiPlate {
 
     /* --------- Methods to validate different parameters --------- */
     private void validateDINBit (int bit) throws InvalidParameterException {
-        if (bit < 0 || bit > 1) throw new InvalidParameterException("Bit number parameter must be in the range [0..7]");
-
+        if (bit < 0 || bit > 7) throw new InvalidParameterException("Bit number parameter must be in the range [0..7]");
     }
 
     private void validateAnalogIn(int analogIn) throws InvalidParameterException {

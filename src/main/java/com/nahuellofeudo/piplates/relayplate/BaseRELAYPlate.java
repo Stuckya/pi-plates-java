@@ -46,7 +46,7 @@ public abstract class BaseRELAYPlate extends PiPlate implements RelayBoard {
                 .map(resp -> {
                     int length = ID_LENGTH;
                     for (int x = 0; x < ID_LENGTH; x++) {
-                        if (resp[0] == 0) {
+                        if (resp[x] == 0) {
                             length = x;
                             break;
                         }

@@ -81,7 +81,7 @@ public class DIGIPlate extends PiPlate {
     }
 
     private void validateDINBit (int bit) throws InvalidParameterException {
-        if (bit < 0 || bit > 1) throw new InvalidParameterException("Bit number parameter must be in the range [0..7]");
+        if (bit < 0 || bit > 7) throw new InvalidParameterException("Bit number parameter must be in the range [0..7]");
     }
 
 }
