@@ -316,4 +316,17 @@ class DAQCPlateTest {
         assertThrows(InvalidParameterException.class, () -> plate.setDac(0, -0.1));
         assertThrows(InvalidParameterException.class, () -> plate.setDac(0, 4.096));
     }
+
+    @Test
+    void setDacRejectsUncalibratedVcc() {
+        plate.vcc = 0;
+        assertThrows(IllegalStateException.class, () -> plate.setDac(0, 2.5));
+    }
+
+    @Test
+    void getDacRejectsUncalibratedVcc() {
+        plate.vcc = 0;
+        helper.preloadResponse((byte) 0x02, (byte) 0x00);
+        assertThrows(IllegalStateException.class, () -> plate.getDac(0));
+    }
 }

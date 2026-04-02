@@ -28,8 +28,8 @@ You interact with a plate by creating an instance of the corresponding class and
 
     // CURRENTplate on address 0
     CURRENTplate current = new CURRENTplate(0);
-    double milliamps = current.getI(1);       // Read channel 1
-    double[] all = current.getIAll();          // Read all 8 channels
+    double milliamps = current.getCurrent(1);       // Read channel 1
+    double[] all = current.getCurrentAll();          // Read all 8 channels
 
     // POWERplate24 (always address 0)
     POWERplate24 power = new POWERplate24();

@@ -7,12 +7,10 @@ import com.pi4j.context.Context;
 public abstract class BaseRELAYPlate extends PiPlate implements RelayBoard {
     protected BaseRELAYPlate(Context pi4jContext, int address) throws InvalidAddressException {
         super(pi4jContext, address);
-        this.address = address;
     }
 
     protected BaseRELAYPlate(int address) throws InvalidAddressException {
         super(address);
-        this.address = address;
     }
 
     /**

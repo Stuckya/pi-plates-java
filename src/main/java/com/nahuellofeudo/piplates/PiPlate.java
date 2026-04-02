@@ -42,7 +42,7 @@ public abstract class PiPlate {
 
     private final AtomicBoolean acknowledged = new AtomicBoolean(false);
 
-    public int address;
+    private final int address;
 
     /**
      * Constructor with dependency-injected Pi4J context
@@ -66,7 +66,7 @@ public abstract class PiPlate {
         this(Pi4J.newAutoContext(), address);
     }
 
-    public void validateAddress(int address) throws InvalidAddressException {
+    protected void validateAddress(int address) throws InvalidAddressException {
         if (address < 0 || address > 7) {
             throw new InvalidAddressException("Address must be in the range [0..7]");
         }
@@ -140,7 +140,7 @@ public abstract class PiPlate {
      * Sends a command to the plate with no response expected.
      * Equivalent to Python library's {@code ppCMD(addr, cmd, param1, param2, 0)}.
      */
-    public void sendCommand(int command, int parameter1, int parameter2) {
+    protected void sendCommand(int command, int parameter1, int parameter2) {
         executeCommand(command, parameter1, parameter2, 0);
     }
 
@@ -150,7 +150,7 @@ public abstract class PiPlate {
      * @param bytesToReturn number of data bytes expected (must be > 0)
      * @return the response data bytes (checksum already validated and stripped)
      */
-    public byte[] sendQuery(int command, int parameter1, int parameter2, int bytesToReturn) {
+    protected byte[] sendQuery(int command, int parameter1, int parameter2, int bytesToReturn) {
         if (bytesToReturn < 1) {
             throw new InvalidParameterException(
                     "bytesToReturn must be > 0; use sendCommand() for commands with no response");

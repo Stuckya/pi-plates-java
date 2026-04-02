@@ -348,22 +348,39 @@ class POWERplate24Test {
     }
 
     @Test
-    void enablePowerSwitchBypassFalseSendsCorrectCommands() throws PiPlateException {
-        // enablePowerSwitch(false) first calls getFirmwareRevision() which sends
-        // [0, 0x03, 0, 0] and reads 1 byte, then sends [0, 0x53, 0, 0].
-        // Preload FW revision response (e.g. 0x00 → version 0.0, so bypass check irrelevant)
-        helper.preloadResponse((byte) 0x00);
-        // Preload no-response for the 0x53 command
+    void enablePowerSwitchSendsBparg0() throws PiPlateException {
+        // enablePowerSwitch() always sends bparg=0 (no bypass)
         helper.preloadNoResponse();
-        plate.enablePowerSwitch(false);
-        byte[] allBytes = helper.getAllSpiBytes();
-        // Command 1: [0, 0x03, 0, 0] (4 bytes) + 2 zero bytes for reading response (1 data + 1 checksum)
-        byte[] fwCmd = Arrays.copyOfRange(allBytes, 0, 4);
+        plate.enablePowerSwitch();
         assertArrayEquals(
-                new byte[]{(byte) (BASE_ADDR + PLATE_ADDR), 0x03, 0x00, 0x00},
-                fwCmd
+                new byte[]{(byte) (BASE_ADDR + PLATE_ADDR), 0x53, 0x00, 0x00},
+                helper.getLastCommandPacket()
         );
-        // Command 2: offset = 4 (cmd) + 2 (response read) = 6
+    }
+
+    @Test
+    void enablePowerSwitchWithBypassSendsBparg1WhenFirmwareSupports() throws PiPlateException {
+        // FW 1.2 (0x12) supports bypass → sends bparg=1
+        helper.preloadResponse((byte) 0x12);
+        helper.preloadNoResponse();
+        plate.enablePowerSwitchWithBypass();
+        byte[] allBytes = helper.getAllSpiBytes();
+        // Command 1: getFirmwareRevision [0, 0x03, 0, 0] + 2 read bytes
+        // Command 2: [0, 0x53, bparg, 0]
+        byte[] pwrCmd = Arrays.copyOfRange(allBytes, 6, 10);
+        assertArrayEquals(
+                new byte[]{(byte) (BASE_ADDR + PLATE_ADDR), 0x53, 0x01, 0x00},
+                pwrCmd
+        );
+    }
+
+    @Test
+    void enablePowerSwitchWithBypassSendsBparg0WhenFirmwareTooOld() throws PiPlateException {
+        // FW 1.1 (0x11) does not support bypass → sends bparg=0
+        helper.preloadResponse((byte) 0x11);
+        helper.preloadNoResponse();
+        plate.enablePowerSwitchWithBypass();
+        byte[] allBytes = helper.getAllSpiBytes();
         byte[] pwrCmd = Arrays.copyOfRange(allBytes, 6, 10);
         assertArrayEquals(
                 new byte[]{(byte) (BASE_ADDR + PLATE_ADDR), 0x53, 0x00, 0x00},

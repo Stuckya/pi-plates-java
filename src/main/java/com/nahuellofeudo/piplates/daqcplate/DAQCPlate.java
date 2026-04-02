@@ -167,10 +167,10 @@ public class DAQCPlate extends PiPlate {
      * @throws InterruptedException
      */
     public double getRange(int channel, DistanceUnit unit) throws PiPlateException, InterruptedException {
-        if (channel < 0 || channel > 6) throw new InvalidParameterException("Channel must be in the range [0..6]");
+        validateRange(channel, 0, 6, "Range sensor channel");
 
         sendCommand(0x80, channel, 0);
-        Thread.sleep(700);
+        Thread.sleep(70);
         var resp = sendQuery(0x81, channel, 0, 2);
 
         long range = (long) unsigned(resp[0]) * 256 + unsigned(resp[1]);
@@ -274,6 +274,7 @@ public class DAQCPlate extends PiPlate {
      */
     public void setDac(int channel, double value) throws InvalidParameterException {
         if (value < 0 || value > 4.095) throw new InvalidParameterException("ERROR: DAC argument out of range - must be between 0 and 4.095 volts");
+        requireCalibratedVcc();
 
         int dacValue = (int) (value / vcc * 1024);
 
@@ -288,9 +289,16 @@ public class DAQCPlate extends PiPlate {
      * @throws InvalidParameterException
      */
     double getDac(int channel) throws InvalidParameterException {
+        requireCalibratedVcc();
         int value = getPwm(channel);
 
         return value * vcc / 1023;
+    }
+
+    private void requireCalibratedVcc() {
+        if (vcc == 0) {
+            throw new IllegalStateException("VCC not calibrated; DAC operations require a valid VCC reading");
+        }
     }
 
 

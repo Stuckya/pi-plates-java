@@ -13,12 +13,10 @@ public class DIGIPlate extends PiPlate {
 
     public DIGIPlate(Context pi4jContext, int address) throws InvalidAddressException {
         super(pi4jContext, address);
-        this.address = address;
     }
 
     public DIGIPlate(int address) throws InvalidAddressException {
         super(address);
-        this.address = address;
     }
 
     @Override

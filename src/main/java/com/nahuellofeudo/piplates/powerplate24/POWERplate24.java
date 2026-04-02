@@ -43,7 +43,7 @@ public class POWERplate24 extends PiPlate {
     }
 
     @Override
-    public void validateAddress(int address) throws InvalidAddressException {
+    protected void validateAddress(int address) throws InvalidAddressException {
         if (address != 0) {
             throw new InvalidAddressException("POWERplate24 address must be 0");
         }
@@ -236,14 +236,19 @@ public class POWERplate24 extends PiPlate {
     }
 
     /**
-     * Enables the pushbutton power switch control
-     * @param bypass if true and firmware >= 1.2, enables auto-power-on when supply is connected
+     * Enables the pushbutton power switch control without bypass.
      */
-    public void enablePowerSwitch(boolean bypass) throws PiPlateException {
-        int bparg = 0;
-        if (getFirmwareRevision() >= 1.2 && bypass) {
-            bparg = 1;
-        }
+    public void enablePowerSwitch() {
+        sendCommand(0x53, 0, 0);
+    }
+
+    /**
+     * Enables the pushbutton power switch control with auto-power-on bypass.
+     * Bypass is only activated when firmware >= 1.2; older firmware ignores the request
+     * and enables the power switch without bypass.
+     */
+    public void enablePowerSwitchWithBypass() throws PiPlateException {
+        int bparg = getFirmwareRevision() >= 1.2 ? 1 : 0;
         sendCommand(0x53, bparg, 0);
     }
 
