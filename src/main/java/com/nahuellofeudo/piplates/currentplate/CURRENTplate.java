@@ -7,7 +7,7 @@ import com.pi4j.context.Context;
 
 /**
  * Interface to the Pi-Plates CURRENTplate - an 8-channel 4-20mA current loop measurement board.
- * Reference: ~/Projects/pi_plates-11.0/piplates/CURRENTplate.py
+ * Reference: Pi-Plates Python library v11 (CURRENTplate)
  */
 public class CURRENTplate extends PiPlate {
 

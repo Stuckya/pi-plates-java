@@ -17,7 +17,7 @@ import java.time.ZonedDateTime;
  * Interface to the Pi-Plates POWERplate24 - a power management board with
  * high-voltage monitoring, RTC, fan control, and scheduled wake-up.
  * Only address 0 is valid (single board per stack).
- * Reference: ~/Projects/pi_plates-11.0/piplates/POWERplate24.py
+ * Reference: Pi-Plates Python library v11 (POWERplate24)
  */
 public class POWERplate24 extends PiPlate {
 

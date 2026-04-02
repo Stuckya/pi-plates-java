@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for POWERplate24 validation and conversion math.
- * Reference: ~/Projects/pi_plates-11.0/piplates/POWERplate24.py
+ * Reference: Pi-Plates Python library v11 (POWERplate24)
  */
 class POWERplate24Test {
 

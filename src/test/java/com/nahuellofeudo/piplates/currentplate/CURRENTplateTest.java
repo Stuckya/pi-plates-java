@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for CURRENTplate validation and conversion math.
- * Reference: ~/Projects/pi_plates-11.0/piplates/CURRENTplate.py
+ * Reference: Pi-Plates Python library v11 (CURRENTplate)
  */
 class CURRENTplateTest {
 

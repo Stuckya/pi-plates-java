@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for DAQCPlate validation (especially the validateDINBit bug fix).
- * Reference: ~/Projects/pi_plates-11.0/piplates/DAQCplate.py
+ * Reference: Pi-Plates Python library v11 (DAQCplate)
  */
 class DAQCPlateTest {
 

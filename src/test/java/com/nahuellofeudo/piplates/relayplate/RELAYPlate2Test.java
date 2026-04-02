@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for RELAYPlate2 validation.
- * Reference: ~/Projects/pi_plates-11.0/piplates/RELAYplate2.py
+ * Reference: Pi-Plates Python library v11 (RELAYplate2)
  */
 class RELAYPlate2Test {
 

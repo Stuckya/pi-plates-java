@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for DIGIPlate validation and frequency math.
- * Reference: ~/Projects/pi_plates-11.0/piplates/DIGIplate.py
+ * Reference: Pi-Plates Python library v11 (DIGIplate)
  */
 class DIGIPlateTest {
 

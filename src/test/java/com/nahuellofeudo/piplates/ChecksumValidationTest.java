@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests checksum validation logic.
- * Reference: ~/Projects/pi_plates-11.0/piplates/CMD.py ppCMD2 lines 118-125
+ * Reference: Pi-Plates Python library v11 (CMD.ppCMD2 checksum logic)
  *
  * Python checksum: ~resp[bytesToReturn] & 0xFF == sum(resp[0:bytesToReturn]) & 0xFF
  */
