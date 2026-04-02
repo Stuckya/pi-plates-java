@@ -134,7 +134,7 @@ public class DAQCPlate extends PiPlate {
         // TODO: How do we want to handle no response?
         var resp = ppCommand(0x71, channel, 0, 2).orElse(new byte[0]);
 
-        long temp = resp[0] * 256 + resp[1];
+        long temp = (long) unsigned(resp[0]) * 256 + unsigned(resp[1]);
 
         // TODO: Condition always false?
         if (temp > 0x8000) temp = temp ^ 0xFFFF;
@@ -177,7 +177,7 @@ public class DAQCPlate extends PiPlate {
         // TODO: How do we want to handle no response?
         resp = ppCommand(0x81, channel, 0, 2).orElse(new byte[0]);
 
-        long range=resp[0] * 256 + resp[1];
+        long range = (long) unsigned(resp[0]) * 256 + unsigned(resp[1]);
         if (range == 0) throw new PiPlateException("Range sensor error or sensor not present on channel " + channel);
 
         double dblRange = 0;
@@ -269,7 +269,7 @@ public class DAQCPlate extends PiPlate {
         // TODO: How do we want to handle no response?
         var resp = ppCommand(0x40+channel+2, 0, 0, 2).orElse(new byte[0]);
 
-        return (256 * resp[0] + resp[1]);
+        return (unsigned(resp[0]) << 8) + unsigned(resp[1]);
     }
 
 
