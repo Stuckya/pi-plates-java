@@ -27,11 +27,12 @@ public class CURRENTplate extends PiPlate {
     /* --------- Current Measurement Functions --------- */
 
     /**
-     * Reads the current on a single channel
+     * Reads the current on a single channel.
+     * Equivalent to Python library's {@code getI(addr, channel)}.
      * @param channel the input channel (1-8)
      * @return current in milliamps (0-24mA range), rounded to 4 decimal places
      */
-    public double getI(int channel) throws InvalidParameterException {
+    public double getCurrent(int channel) throws InvalidParameterException {
         validateChannel(channel);
         var resp = ppCommand(0x30, channel - 1, 0, 2).orElse(new byte[0]);
         double value = 256.0 * unsigned(resp[0]) + unsigned(resp[1]);
@@ -39,10 +40,11 @@ public class CURRENTplate extends PiPlate {
     }
 
     /**
-     * Reads the current on all 8 channels simultaneously
+     * Reads the current on all 8 channels simultaneously.
+     * Equivalent to Python library's {@code getIall(addr)}.
      * @return array of 8 current values in milliamps
      */
-    public double[] getIAll() {
+    public double[] getCurrentAll() {
         var resp = ppCommand(0x31, 0, 0, 16).orElse(new byte[0]);
         double[] values = new double[8];
         for (int i = 0; i < 8; i++) {

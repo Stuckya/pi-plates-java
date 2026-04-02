@@ -58,11 +58,11 @@ class CURRENTplateTest {
 
     @Test
     void validChannels() {
-        // Can't actually call getI without real SPI, but we can test validation
+        // Can't actually call getCurrent without real SPI, but we can test validation
         // by calling with channels outside range
-        assertThrows(InvalidParameterException.class, () -> plate.getI(0));
-        assertThrows(InvalidParameterException.class, () -> plate.getI(9));
-        assertThrows(InvalidParameterException.class, () -> plate.getI(-1));
+        assertThrows(InvalidParameterException.class, () -> plate.getCurrent(0));
+        assertThrows(InvalidParameterException.class, () -> plate.getCurrent(9));
+        assertThrows(InvalidParameterException.class, () -> plate.getCurrent(-1));
     }
 
     /* Frequency validation — Python: assert (freq==50 or freq==60) */
