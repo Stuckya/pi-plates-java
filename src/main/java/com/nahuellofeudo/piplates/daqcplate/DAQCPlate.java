@@ -24,7 +24,7 @@ public class DAQCPlate extends PiPlate {
     private void calibrateVCC() {
         try {
             vccValue = getADC(8);
-        } catch (InvalidParameterException e) {
+        } catch (Exception e) {
             vccValue = 0;
         }
     }

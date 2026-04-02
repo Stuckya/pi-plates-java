@@ -77,6 +77,9 @@ public abstract class PiPlate {
      * Initializes the SPI bus
      */
     private void initializeGPIO(Context pi4j) {
+        if (frame != null) {
+            return; // Already initialized (static resources shared across instances)
+        }
         frame = pi4j.create(buildFrameConfig(pi4j));
         serviceRequest = pi4j.create(buildSRQConfig(pi4j));
         ack = pi4j.create(buildAckConfig(pi4j));
