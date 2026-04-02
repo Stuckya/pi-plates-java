@@ -97,6 +97,7 @@ public abstract class PiPlate {
 
     private static DigitalOutputConfig buildFrameConfig(Context pi4j) {
         return DigitalOutput.newConfigBuilder(pi4j)
+                .id("Frame")
                 .name("Frame")
                 .bcm(GPIO_FRAME)
                 .initial(DigitalState.LOW)
@@ -105,6 +106,7 @@ public abstract class PiPlate {
 
     private static DigitalInputConfig buildSRQConfig(Context pi4j) {
         return DigitalInput.newConfigBuilder(pi4j)
+                .id("ServiceRequest")
                 .name("ServiceRequest")
                 .bcm(GPIO_SRQ)
                 .pull(PullResistance.PULL_UP)
@@ -113,6 +115,7 @@ public abstract class PiPlate {
 
     private static DigitalInputConfig buildAckConfig(Context pi4j) {
         return DigitalInput.newConfigBuilder(pi4j)
+                .id("Ack")
                 .name("Ack")
                 .bcm(GPIO_ACK)
                 .pull(PullResistance.PULL_UP)

@@ -94,7 +94,7 @@ public class DIGIPlate extends PiPlate {
      */
     public int getEventFlags() {
         byte[] resp = ppCommand(0x06, 0, 0, 2).orElse(new byte[0]);
-        return ((resp[0] << 8) + resp[1]);
+        return (unsigned(resp[0]) << 8) + unsigned(resp[1]);
     }
 
     /* --------- Frequency Functions --------- */

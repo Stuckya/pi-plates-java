@@ -6,7 +6,6 @@ import com.nahuellofeudo.piplates.digiplate.DIGIPlate;
 import com.nahuellofeudo.piplates.powerplate24.POWERplate24;
 import com.nahuellofeudo.piplates.relayplate.RELAYPlate;
 import com.nahuellofeudo.piplates.relayplate.RELAYPlate2;
-import com.pi4j.Pi4J;
 import com.pi4j.context.Context;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -14,17 +13,13 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Verifies each plate type accepts valid addresses and rejects invalid ones.
- * Uses Pi4J mock plugin for hardware abstraction.
- */
 class BaseAddressTest {
 
     private static Context mockContext;
 
     @BeforeAll
     static void setUp() {
-        mockContext = Pi4J.newAutoContext();
+        mockContext = PiPlateTestHelper.createMockContext();
     }
 
     @AfterAll
@@ -33,7 +28,7 @@ class BaseAddressTest {
     }
 
     @Test
-    void allPlatesAcceptAddress0() throws Exception {
+    void allPlatesAcceptAddress0() {
         assertDoesNotThrow(() -> new DAQCPlate(mockContext, 0));
         assertDoesNotThrow(() -> new RELAYPlate(mockContext, 0));
         assertDoesNotThrow(() -> new RELAYPlate2(mockContext, 0));
@@ -43,7 +38,7 @@ class BaseAddressTest {
     }
 
     @Test
-    void standardPlatesAcceptAddress7() throws Exception {
+    void standardPlatesAcceptAddress7() {
         assertDoesNotThrow(() -> new DAQCPlate(mockContext, 7));
         assertDoesNotThrow(() -> new RELAYPlate(mockContext, 7));
         assertDoesNotThrow(() -> new RELAYPlate2(mockContext, 7));

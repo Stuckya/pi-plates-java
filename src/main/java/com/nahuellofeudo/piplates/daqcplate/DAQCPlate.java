@@ -58,8 +58,7 @@ public class DAQCPlate extends PiPlate {
      */
     public int getInterruptFlags() {
         var resp = ppCommand(0x06, 0, 0, 2).orElse(new byte[0]);
-        // TODO: How do we want to handle no response?
-        return (256 * resp[0] + resp[1]);
+        return (unsigned(resp[0]) << 8) + unsigned(resp[1]);
     }
 
     /* ---------  Digital Input Functions --------- */
