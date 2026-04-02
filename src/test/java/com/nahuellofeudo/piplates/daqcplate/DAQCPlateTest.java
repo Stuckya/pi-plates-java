@@ -39,7 +39,7 @@ class DAQCPlateTest {
             final int b = bit;
             assertDoesNotThrow(() -> {
                 try {
-                    plate.getDINBit(b);
+                    plate.getDigitalInput(b);
                 } catch (InvalidParameterException e) {
                     throw e;
                 } catch (Exception e) {
@@ -51,8 +51,8 @@ class DAQCPlateTest {
 
     @Test
     void getDINBitRejectsOutOfRange() {
-        assertThrows(InvalidParameterException.class, () -> plate.getDINBit(-1));
-        assertThrows(InvalidParameterException.class, () -> plate.getDINBit(8));
+        assertThrows(InvalidParameterException.class, () -> plate.getDigitalInput(-1));
+        assertThrows(InvalidParameterException.class, () -> plate.getDigitalInput(8));
     }
 
     /* enableDINInterrupt uses the same validateDINBit */
@@ -63,7 +63,7 @@ class DAQCPlateTest {
             final int b = bit;
             assertDoesNotThrow(() -> {
                 try {
-                    plate.enableDINInterrupt(b, InterruptEdge.BOTH_EDGES);
+                    plate.enableDigitalInputInterrupt(b, InterruptEdge.BOTH_EDGES);
                 } catch (InvalidParameterException e) {
                     throw e;
                 } catch (Exception e) {
@@ -76,6 +76,6 @@ class DAQCPlateTest {
     @Test
     void enableDINInterruptRejectsOutOfRange() {
         assertThrows(InvalidParameterException.class,
-                () -> plate.enableDINInterrupt(8, InterruptEdge.BOTH_EDGES));
+                () -> plate.enableDigitalInputInterrupt(8, InterruptEdge.BOTH_EDGES));
     }
 }

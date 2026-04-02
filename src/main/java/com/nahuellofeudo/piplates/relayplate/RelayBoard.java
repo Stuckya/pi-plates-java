@@ -7,8 +7,8 @@ public interface RelayBoard {
     void relayAll(int relays);
     int relayState();
 
-    void setLED();
-    void clearLED();
-    void toggleLED();
+    void setLed();
+    void clearLed();
+    void toggleLed();
     String getId();
 }

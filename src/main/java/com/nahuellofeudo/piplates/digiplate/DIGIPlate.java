@@ -33,7 +33,7 @@ public class DIGIPlate extends PiPlate {
      * @param bit the input channel (1-8)
      * @return true if input is high, false if low
      */
-    public boolean getDINBit(int bit) throws InvalidParameterException {
+    public boolean getDigitalInput(int bit) throws InvalidParameterException {
         validateDINBit(bit - 1);
         var resp = ppCommand(0x20, bit - 1, 0, 1).orElse(new byte[0]);
         return resp[0] > 0;
@@ -43,14 +43,14 @@ public class DIGIPlate extends PiPlate {
      * Reads all 8 digital inputs
      * @return 8-bit value with all input states
      */
-    public int getDINAll() {
+    public int getDigitalInputAll() {
         var resp = ppCommand(0x25, 0, 0, 1).orElse(new byte[0]);
         return unsigned(resp[0]);
     }
 
     /* --------- Event Functions --------- */
 
-    public void enableDINEvent(int bit, InterruptEdge edge) throws InvalidParameterException {
+    public void enableDigitalInputEvent(int bit, InterruptEdge edge) throws InvalidParameterException {
         validateDINBit(bit - 1);
         switch (edge) {
             case FALLING_EDGE:
@@ -65,7 +65,7 @@ public class DIGIPlate extends PiPlate {
         }
     }
 
-    public void disableDINEvent(int bit) throws InvalidParameterException {
+    public void disableDigitalInputEvent(int bit) throws InvalidParameterException {
         validateDINBit(bit - 1);
         ppCommand(0x24, bit - 1, 0, 0);
     }
@@ -73,18 +73,18 @@ public class DIGIPlate extends PiPlate {
     /**
      * Enables SRQ pin on DIGIplate, will pull down on pin when event occurs
      */
-    public void eventEnable() {
+    public void enableEvents() {
         ppCommand(0x04, 0, 0, 0);
     }
 
     /**
      * Disables SRQ pin on DIGIplate
      */
-    public void eventDisable() {
+    public void disableEvents() {
         ppCommand(0x05, 0, 0, 0);
     }
 
-    public boolean check4Events() {
+    public boolean checkForEvents() {
         return isServiceRequest();
     }
 
@@ -92,7 +92,7 @@ public class DIGIPlate extends PiPlate {
      * Reads the event register. Clears the interrupt line and the register.
      * @return 16-bit event flags (upper 8 = falling, lower 8 = rising)
      */
-    public int getEvents() {
+    public int getEventFlags() {
         byte[] resp = ppCommand(0x06, 0, 0, 2).orElse(new byte[0]);
         return ((resp[0] << 8) + resp[1]);
     }
@@ -104,7 +104,7 @@ public class DIGIPlate extends PiPlate {
      * @param channel the input channel (1-6)
      * @return frequency in Hz, rounded to 3 decimal places
      */
-    public double getFREQ(int channel) throws InvalidParameterException {
+    public double getFrequency(int channel) throws InvalidParameterException {
         validateFREQChannel(channel);
         // Get upper 16 bits
         var upper = ppCommand(0xC0, 0, channel - 1, 2).orElse(new byte[0]);
@@ -123,25 +123,25 @@ public class DIGIPlate extends PiPlate {
      * Measures the frequency on all 6 input channels
      * @return array of 6 frequency values in Hz
      */
-    public double[] getFREQAll() throws InvalidParameterException {
+    public double[] getFrequencyAll() throws InvalidParameterException {
         double[] freqs = new double[6];
         for (int i = 0; i < 6; i++) {
-            freqs[i] = getFREQ(i + 1);
+            freqs[i] = getFrequency(i + 1);
         }
         return freqs;
     }
 
     /* --------- LED Functions --------- */
 
-    public void setLED() {
+    public void setLed() {
         ppCommand(0x60, 0, 0, 0);
     }
 
-    public void clrLED() {
+    public void clearLed() {
         ppCommand(0x61, 0, 0, 0);
     }
 
-    public void toggleLED() {
+    public void toggleLed() {
         ppCommand(0x62, 0, 0, 0);
     }
 
@@ -155,11 +155,11 @@ public class DIGIPlate extends PiPlate {
         Thread.sleep(100);
     }
 
-    public void setINT() {
+    public void setInterrupt() {
         ppCommand(0xF4, 0, 0, 0);
     }
 
-    public void clrINT() {
+    public void clearInterrupt() {
         ppCommand(0xF5, 0, 0, 0);
     }
 

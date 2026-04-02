@@ -40,7 +40,7 @@ class DIGIPlateTest {
             final int b = bit;
             assertDoesNotThrow(() -> {
                 try {
-                    plate.getDINBit(b);
+                    plate.getDigitalInput(b);
                 } catch (InvalidParameterException e) {
                     throw e; // re-throw validation errors
                 } catch (Exception e) {
@@ -52,9 +52,9 @@ class DIGIPlateTest {
 
     @Test
     void getDINBitInvalidChannels() {
-        assertThrows(InvalidParameterException.class, () -> plate.getDINBit(0));
-        assertThrows(InvalidParameterException.class, () -> plate.getDINBit(9));
-        assertThrows(InvalidParameterException.class, () -> plate.getDINBit(-1));
+        assertThrows(InvalidParameterException.class, () -> plate.getDigitalInput(0));
+        assertThrows(InvalidParameterException.class, () -> plate.getDigitalInput(9));
+        assertThrows(InvalidParameterException.class, () -> plate.getDigitalInput(-1));
     }
 
     /* Bug fix verification: validateDINBit now accepts 0-7 (was limited to 0-1) */
@@ -66,7 +66,7 @@ class DIGIPlateTest {
             final int b = bit;
             assertDoesNotThrow(() -> {
                 try {
-                    plate.enableDINEvent(b, com.nahuellofeudo.piplates.daqcplate.InterruptEdge.BOTH_EDGES);
+                    plate.enableDigitalInputEvent(b, com.nahuellofeudo.piplates.daqcplate.InterruptEdge.BOTH_EDGES);
                 } catch (InvalidParameterException e) {
                     throw e;
                 } catch (Exception e) {
@@ -84,7 +84,7 @@ class DIGIPlateTest {
             final int c = ch;
             assertDoesNotThrow(() -> {
                 try {
-                    plate.getFREQ(c);
+                    plate.getFrequency(c);
                 } catch (InvalidParameterException e) {
                     throw e;
                 } catch (Exception e) {
@@ -96,9 +96,9 @@ class DIGIPlateTest {
 
     @Test
     void freqChannelInvalidRange() {
-        assertThrows(InvalidParameterException.class, () -> plate.getFREQ(0));
-        assertThrows(InvalidParameterException.class, () -> plate.getFREQ(7));
-        assertThrows(InvalidParameterException.class, () -> plate.getFREQ(-1));
+        assertThrows(InvalidParameterException.class, () -> plate.getFrequency(0));
+        assertThrows(InvalidParameterException.class, () -> plate.getFrequency(7));
+        assertThrows(InvalidParameterException.class, () -> plate.getFrequency(-1));
     }
 
     /* Frequency calculation — Python: 1000000.0/counts if counts>0 else 0 */

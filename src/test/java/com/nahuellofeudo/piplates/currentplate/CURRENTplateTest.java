@@ -69,16 +69,16 @@ class CURRENTplateTest {
 
     @Test
     void validFrequencies() {
-        assertDoesNotThrow(() -> plate.setFreq(50));
-        assertDoesNotThrow(() -> plate.setFreq(60));
+        assertDoesNotThrow(() -> plate.setFrequency(50));
+        assertDoesNotThrow(() -> plate.setFrequency(60));
     }
 
     @Test
     void invalidFrequencies() {
-        assertThrows(InvalidParameterException.class, () -> plate.setFreq(0));
-        assertThrows(InvalidParameterException.class, () -> plate.setFreq(55));
-        assertThrows(InvalidParameterException.class, () -> plate.setFreq(100));
-        assertThrows(InvalidParameterException.class, () -> plate.setFreq(-1));
+        assertThrows(InvalidParameterException.class, () -> plate.setFrequency(0));
+        assertThrows(InvalidParameterException.class, () -> plate.setFrequency(55));
+        assertThrows(InvalidParameterException.class, () -> plate.setFrequency(100));
+        assertThrows(InvalidParameterException.class, () -> plate.setFrequency(-1));
     }
 
     /* Calibration validation — Python: assert (ptr>=0 and ptr<=255) */
@@ -86,13 +86,13 @@ class CURRENTplateTest {
     @Test
     void calPointerValidRange() {
         // These will throw TimeoutException from mock SPI, but not InvalidParameterException
-        assertThrows(InvalidParameterException.class, () -> plate.calGetByte(-1));
-        assertThrows(InvalidParameterException.class, () -> plate.calGetByte(256));
+        assertThrows(InvalidParameterException.class, () -> plate.calibrationReadByte(-1));
+        assertThrows(InvalidParameterException.class, () -> plate.calibrationReadByte(256));
     }
 
     @Test
     void calDataValidRange() {
-        assertThrows(InvalidParameterException.class, () -> plate.calPutByte(-1));
-        assertThrows(InvalidParameterException.class, () -> plate.calPutByte(256));
+        assertThrows(InvalidParameterException.class, () -> plate.calibrationWriteByte(-1));
+        assertThrows(InvalidParameterException.class, () -> plate.calibrationWriteByte(256));
     }
 }

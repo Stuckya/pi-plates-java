@@ -18,21 +18,21 @@ public abstract class BaseRELAYPlate extends PiPlate implements RelayBoard {
     /**
      * Turn on the board's LED
      */
-    public void setLED() {
+    public void setLed() {
         ppCommand(RelayCommand.LED_SET.getCode(), 0, 0, 0);
     }
 
     /**
      * Turn off the board's LED
      */
-    public void clearLED() {
+    public void clearLed() {
         ppCommand(RelayCommand.LED_CLEAR.getCode(), 0, 0, 0);
     }
 
     /**
      * Toggle the board's LED
      */
-    public void toggleLED() {
+    public void toggleLed() {
         ppCommand(RelayCommand.LED_TOGGLE.getCode(), 0, 0, 0);
     }
 

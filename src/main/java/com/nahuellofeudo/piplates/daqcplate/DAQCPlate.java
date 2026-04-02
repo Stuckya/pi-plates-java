@@ -23,7 +23,7 @@ public class DAQCPlate extends PiPlate {
 
     private void calibrateVCC() {
         try {
-            vccValue = getADC(8);
+            vccValue = getAnalogInput(8);
         } catch (Exception e) {
             vccValue = 0;
         }
@@ -41,14 +41,14 @@ public class DAQCPlate extends PiPlate {
     /**
      * Enable triggering an interrupt when an ENABLED event occurs
      */
-    public void intEnable() {
+    public void interruptEnable() {
         ppCommand(0x04, 0, 0, 0);
     }
 
     /**
      * Disable triggering interrupts
      */
-    public void intDisable() {
+    public void interruptDisable() {
         ppCommand(0x05, 0, 0, 0);
     }
 
@@ -56,7 +56,7 @@ public class DAQCPlate extends PiPlate {
      * Read the interrupt flags
      * @return integer with all the interrupt flags
      */
-    public int getIntFlags() {
+    public int getInterruptFlags() {
         var resp = ppCommand(0x06, 0, 0, 2).orElse(new byte[0]);
         // TODO: How do we want to handle no response?
         return (256 * resp[0] + resp[1]);
@@ -69,7 +69,7 @@ public class DAQCPlate extends PiPlate {
      * @return true if the input bit's state is high, false otherwise.
      * @throws InvalidParameterException
      */
-    public boolean getDINBit(int bit) throws InvalidParameterException {
+    public boolean getDigitalInput(int bit) throws InvalidParameterException {
         validateDINBit(bit);
         // TODO: How do we want to handle no response?
         var resp = ppCommand(0x20, bit, 0, 1).orElse(new byte[0]);
@@ -80,10 +80,9 @@ public class DAQCPlate extends PiPlate {
      * Returns the value of all digital inputs
      * @return the values of all 8 digital inputs
      */
-    public byte getDINAll() {
-        // TODO: How do we want to handle no response?
+    public int getDigitalInputAll() {
         var resp = ppCommand(0x25, 0, 0, 1).orElse(new byte[0]);
-        return resp[0];
+        return unsigned(resp[0]);
     }
 
     /**
@@ -92,7 +91,7 @@ public class DAQCPlate extends PiPlate {
      * @param edge the edge on which to trigger the interrupt (Rising, Falling or Both)
      * @throws InvalidParameterException
      */
-    public void enableDINInterrupt(int bit, InterruptEdge edge) throws InvalidParameterException {
+    public void enableDigitalInputInterrupt(int bit, InterruptEdge edge) throws InvalidParameterException {
         validateDINBit(bit);
         switch (edge) {
             case FALLING_EDGE:
@@ -112,7 +111,7 @@ public class DAQCPlate extends PiPlate {
      * @param bit digital input on which to disable interrupt-on-change
      * @throws InvalidParameterException
      */
-    public void disableDINInterrupt(int bit) throws InvalidParameterException {
+    public void disableDigitalInputInterrupt(int bit) throws InvalidParameterException {
         validateDINBit(bit);
         ppCommand(0x24, bit, 0, 0);
     }
@@ -202,7 +201,7 @@ public class DAQCPlate extends PiPlate {
      * @throws InvalidParameterException
      * @throws InvalidAddressException
      */
-    public int getADC(int channel) throws InvalidParameterException {
+    public int getAnalogInput(int channel) throws InvalidParameterException {
         validateAnalogIn(channel);
 
         // TODO: How do we want to handle no response?
@@ -225,7 +224,7 @@ public class DAQCPlate extends PiPlate {
      * Reads the values of all 8 analog inputs
      * @return an array of 8 ints containing the analog values
      */
-    public int[] getADCAll() {
+    public int[] getAnalogInputAll() {
         int [] values = new int [8];
 
         // TODO: How do we want to handle no response?
@@ -248,7 +247,7 @@ public class DAQCPlate extends PiPlate {
      * @param value the value (0..1023)
      * @throws InvalidParameterException
      */
-    public void setPWM(int channel, int value) throws InvalidParameterException {
+    public void setPwm(int channel, int value) throws InvalidParameterException {
         if (value < 0 || value > 1023) throw new InvalidParameterException("ERROR: PWM argument out of range - must be between 0 and 1023");
         if (channel != 0 && channel != 1) throw new InvalidParameterException("Error: PWM channel must be 0 or 1");
 
@@ -265,7 +264,7 @@ public class DAQCPlate extends PiPlate {
      * @return the value assigned to the PWM output
      * @throws InvalidParameterException
      */
-    public int getPWM(int channel) throws InvalidParameterException {
+    public int getPwm(int channel) throws InvalidParameterException {
         validatePWMChannel(channel);
 
         // TODO: How do we want to handle no response?
@@ -281,12 +280,12 @@ public class DAQCPlate extends PiPlate {
      * @param value the value (0v to 4.095v)
      * @throws InvalidParameterException
      */
-    public void setDAC(int channel, double value) throws InvalidParameterException {
+    public void setDac(int channel, double value) throws InvalidParameterException {
         if (value < 0 || value > 4.095) throw new InvalidParameterException("ERROR: DAC argument out of range - must be between 0 and 4.095 volts");
 
         value = value / (vccValue * 1024);
 
-        this.setPWM(channel, (int) value);
+        this.setPwm(channel, (int) value);
     }
 
 
@@ -296,8 +295,8 @@ public class DAQCPlate extends PiPlate {
      * @return the value of the output (0v to 4.095v)
      * @throws InvalidParameterException
      */
-    double getDAC (int channel) throws InvalidParameterException {
-        int value = getPWM(channel);
+    double getDac (int channel) throws InvalidParameterException {
+        int value = getPwm(channel);
 
         return (double) (value * vccValue) / 1023;
     }
@@ -309,7 +308,7 @@ public class DAQCPlate extends PiPlate {
      * @param led color to turn on
      * @throws PiPlateException
      */
-    public void setLED(BiColorLED led) {
+    public void setLed(BiColorLed led) {
         ppCommand(0x60, led.getValue(), 0, 0);
     }
 
@@ -319,7 +318,7 @@ public class DAQCPlate extends PiPlate {
      * @param led color to turn off
      * @throws PiPlateException
      */
-    public void clearLED(BiColorLED led) {
+    public void clearLed(BiColorLed led) {
         ppCommand(0x61, led.getValue(), 0, 0);
     }
 
@@ -329,7 +328,7 @@ public class DAQCPlate extends PiPlate {
      * @param led the LED to toggle
      * @throws InvalidParameterException
      */
-    public void toggleLED(BiColorLED led) {
+    public void toggleLed(BiColorLed led) {
         ppCommand(0x62, led.getValue(), 0, 0);
     }
 
@@ -339,7 +338,7 @@ public class DAQCPlate extends PiPlate {
      * @param led the LED whose status to return
      * @throws InvalidParameterException
      */
-    int getLED(BiColorLED led) {
+    int getLed(BiColorLed led) {
         // TODO: How do we want to handle no response?
         return ppCommand(0x63, led.getValue(), 0, 1).orElse(new byte[0])[0];
     }

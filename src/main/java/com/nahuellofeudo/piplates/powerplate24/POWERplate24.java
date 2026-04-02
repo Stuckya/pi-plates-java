@@ -55,7 +55,7 @@ public class POWERplate24 extends PiPlate {
      * Reads the +5VDC rail voltage
      * @return voltage in volts
      */
-    public double getVin() {
+    public double getVoltageIn() {
         var resp = ppCommand(0x30, 0, 0, 2).orElse(new byte[0]);
         int value = 256 * unsigned(resp[0]) + unsigned(resp[1]);
         return Math.round(value * 2.4 * 2.5 / 4095.0 * 1000.0) / 1000.0;
@@ -65,7 +65,7 @@ public class POWERplate24 extends PiPlate {
      * Reads the high voltage input (0-24V range)
      * @return voltage in volts
      */
-    public double getHVin() {
+    public double getHighVoltageIn() {
         var resp = ppCommand(0x30, 1, 0, 2).orElse(new byte[0]);
         int value = 256 * unsigned(resp[0]) + unsigned(resp[1]);
         return Math.round(value * 2.4 * 12.4573 / 4095.0 * 1000.0) / 1000.0;
@@ -76,7 +76,7 @@ public class POWERplate24 extends PiPlate {
      * @param channel the ADC channel
      * @return raw 12-bit ADC value
      */
-    public int getADC(int channel) {
+    public int getAnalogInput(int channel) {
         var resp = ppCommand(0x30, channel, 0, 2).orElse(new byte[0]);
         return 256 * unsigned(resp[0]) + unsigned(resp[1]);
     }
@@ -86,7 +86,7 @@ public class POWERplate24 extends PiPlate {
      * This is a host-side reading, not an SPI command.
      * @return temperature in degrees Celsius
      */
-    public double getCPUtemp() throws IOException {
+    public double getCpuTemperature() throws IOException {
         String content = Files.readString(Path.of("/sys/class/thermal/thermal_zone0/temp")).trim();
         return Integer.parseInt(content) / 1000.0;
     }
@@ -97,7 +97,7 @@ public class POWERplate24 extends PiPlate {
      * Sets the on-board real-time clock to the current time
      * @param zone LOCAL for local time, GREENWICH for UTC
      */
-    public void setRTC(TimeZoneType zone) {
+    public void setRealTimeClock(TimeZoneType zone) {
         LocalTime time;
         if (zone == TimeZoneType.LOCAL) {
             time = LocalTime.now();
@@ -114,7 +114,7 @@ public class POWERplate24 extends PiPlate {
      * @param minute minute (0-59)
      * @param second second (0-59)
      */
-    public void setWAKE(int hour, int minute, int second) throws InvalidParameterException {
+    public void setWakeTime(int hour, int minute, int second) throws InvalidParameterException {
         if (hour < 0 || hour > 23) throw new InvalidParameterException("Hour must be in range [0..23]");
         if (minute < 0 || minute > 59) throw new InvalidParameterException("Minute must be in range [0..59]");
         if (second < 0 || second > 59) throw new InvalidParameterException("Second must be in range [0..59]");
@@ -125,14 +125,14 @@ public class POWERplate24 extends PiPlate {
     /**
      * Enables scheduled wake-up
      */
-    public void enableWAKE() {
+    public void enableWake() {
         ppCommand(0xD5, 1, 0, 0);
     }
 
     /**
      * Disables scheduled wake-up
      */
-    public void disableWAKE() {
+    public void disableWake() {
         ppCommand(0xD5, 0, 0, 0);
     }
 
@@ -152,7 +152,7 @@ public class POWERplate24 extends PiPlate {
      * Clears both LEDs first, then sets the requested color.
      * @param color the LED color (OFF, RED, GREEN, YELLOW)
      */
-    public void setLED(LEDColor color) {
+    public void setLed(LedColor color) {
         // Clear both LEDs
         ppCommand(0x61, 0, 0, 0); // clear green
         ppCommand(0x61, 1, 0, 0); // clear red
@@ -177,7 +177,7 @@ public class POWERplate24 extends PiPlate {
      * Sets the LED operating mode (persistent across power cycles)
      * @param mode the LED mode
      */
-    public void ledMode(LEDMode mode) {
+    public void setLedMode(LedMode mode) {
         ppCommand(0x6F, mode.getValue(), 0, 0);
     }
 
@@ -186,14 +186,14 @@ public class POWERplate24 extends PiPlate {
     /**
      * Enables the cooling fan (persistent)
      */
-    public void fanOn() {
+    public void setFanOn() {
         ppCommand(0xEF, 0, 0, 0);
     }
 
     /**
      * Disables the cooling fan (persistent)
      */
-    public void fanOff() {
+    public void setFanOff() {
         ppCommand(0xEE, 0, 0, 0);
     }
 
@@ -201,7 +201,7 @@ public class POWERplate24 extends PiPlate {
      * Reads the current fan state
      * @return 1 if fan is on, 0 if off
      */
-    public int fanState() {
+    public int getFanState() {
         var resp = ppCommand(0xED, 0, 0, 1).orElse(new byte[0]);
         return unsigned(resp[0]);
     }
@@ -212,7 +212,7 @@ public class POWERplate24 extends PiPlate {
      * Reads the pushbutton state
      * @return 1 if pressed, 0 if released
      */
-    public int getSWState() {
+    public int getSwitchState() {
         var resp = ppCommand(0x50, 0, 0, 1).orElse(new byte[0]);
         return unsigned(resp[0]);
     }
@@ -234,7 +234,7 @@ public class POWERplate24 extends PiPlate {
      */
     public void enablePowerSwitch(boolean bypass) throws PiPlateException {
         int bparg = 0;
-        if (getFWRev() >= 1.2 && bypass) {
+        if (getFirmwareRevision() >= 1.2 && bypass) {
             bparg = 1;
         }
         ppCommand(0x53, bparg, 0, 0);
@@ -259,14 +259,14 @@ public class POWERplate24 extends PiPlate {
     /**
      * Enables STAT pin to signal power status changes
      */
-    public void statEnable() {
+    public void statusEnable() {
         ppCommand(0x04, 0, 0, 0);
     }
 
     /**
      * Disables STAT pin signaling
      */
-    public void statDisable() {
+    public void statusDisable() {
         ppCommand(0x05, 0, 0, 0);
     }
 
@@ -274,7 +274,7 @@ public class POWERplate24 extends PiPlate {
      * Reads the power status change register. Clears the register and STAT line.
      * @return power change status byte
      */
-    public int getPOWChange() {
+    public int getPowerChange() {
         var resp = ppCommand(0x06, 0, 0, 1).orElse(new byte[0]);
         return unsigned(resp[0]);
     }
@@ -283,7 +283,7 @@ public class POWERplate24 extends PiPlate {
      * Reads the current power status
      * @return power status byte (bit 0=NO_AC, bit 1=LOW_BAT, bit 2=LOW_DC_IN)
      */
-    public int getPOWStatus() {
+    public int getPowerStatus() {
         var resp = ppCommand(0x07, 0, 0, 1).orElse(new byte[0]);
         return unsigned(resp[0]);
     }

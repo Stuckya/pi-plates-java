@@ -1,5 +1,5 @@
 package com.nahuellofeudo.piplates.powerplate24;
 
-public enum LEDColor {
+public enum LedColor {
     OFF, RED, GREEN, YELLOW
 }

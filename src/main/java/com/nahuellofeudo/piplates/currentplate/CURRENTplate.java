@@ -60,7 +60,7 @@ public class CURRENTplate extends PiPlate {
      * Sets the AC line frequency for measurement filtering
      * @param freq 50 or 60 (Hz)
      */
-    public void setFreq(int freq) throws InvalidParameterException {
+    public void setFrequency(int freq) throws InvalidParameterException {
         if (freq != 50 && freq != 60) {
             throw new InvalidParameterException("Frequency must be 50 or 60");
         }
@@ -69,25 +69,25 @@ public class CURRENTplate extends PiPlate {
 
     /* --------- LED Functions --------- */
 
-    public void setLED() {
+    public void setLed() {
         ppCommand(0x60, 0, 0, 0);
     }
 
-    public void clrLED() {
+    public void clearLed() {
         ppCommand(0x61, 0, 0, 0);
     }
 
-    public void toggleLED() {
+    public void toggleLed() {
         ppCommand(0x62, 0, 0, 0);
     }
 
     /* --------- Interrupt Functions --------- */
 
-    public void intEnable() {
+    public void interruptEnable() {
         ppCommand(0x04, 0, 0, 0);
     }
 
-    public void intDisable() {
+    public void interruptDisable() {
         ppCommand(0x05, 0, 0, 0);
     }
 
@@ -95,16 +95,16 @@ public class CURRENTplate extends PiPlate {
      * Reads the interrupt flags. Clears the register and SRQ signal.
      * @return interrupt flags byte
      */
-    public int getINTFlags() {
+    public int getInterruptFlags() {
         var resp = ppCommand(0x06, 0, 0, 1).orElse(new byte[0]);
         return unsigned(resp[0]);
     }
 
-    public void setINT() {
+    public void setInterrupt() {
         ppCommand(0xF4, 0, 0, 0);
     }
 
-    public void clrINT() {
+    public void clearInterrupt() {
         ppCommand(0xF5, 0, 0, 0);
     }
 
@@ -115,7 +115,7 @@ public class CURRENTplate extends PiPlate {
      * @param ptr memory address (0-255)
      * @return byte value at that address
      */
-    public int calGetByte(int ptr) throws InvalidParameterException {
+    public int calibrationReadByte(int ptr) throws InvalidParameterException {
         validateByteRange(ptr, "Calibration pointer");
         var resp = ppCommand(0xFD, 2, ptr, 1).orElse(new byte[0]);
         return unsigned(resp[0]);
@@ -125,7 +125,7 @@ public class CURRENTplate extends PiPlate {
      * Writes a byte to calibration flash memory
      * @param data byte value to write (0-255)
      */
-    public void calPutByte(int data) throws InvalidParameterException {
+    public void calibrationWriteByte(int data) throws InvalidParameterException {
         validateByteRange(data, "Calibration data");
         ppCommand(0xFD, 1, data, 0);
     }
@@ -133,7 +133,7 @@ public class CURRENTplate extends PiPlate {
     /**
      * Erases the calibration flash memory block
      */
-    public void calEraseBlock() {
+    public void calibrationEraseBlock() {
         ppCommand(0xFD, 0, 0, 0);
     }
 

@@ -79,26 +79,26 @@ class POWERplate24Test {
 
     @Test
     void setWakeValidTimes() {
-        assertDoesNotThrow(() -> plate.setWAKE(0, 0, 0));
-        assertDoesNotThrow(() -> plate.setWAKE(23, 59, 59));
-        assertDoesNotThrow(() -> plate.setWAKE(12, 30, 0));
+        assertDoesNotThrow(() -> plate.setWakeTime(0, 0, 0));
+        assertDoesNotThrow(() -> plate.setWakeTime(23, 59, 59));
+        assertDoesNotThrow(() -> plate.setWakeTime(12, 30, 0));
     }
 
     @Test
     void setWakeInvalidHour() {
-        assertThrows(InvalidParameterException.class, () -> plate.setWAKE(-1, 0, 0));
-        assertThrows(InvalidParameterException.class, () -> plate.setWAKE(24, 0, 0));
+        assertThrows(InvalidParameterException.class, () -> plate.setWakeTime(-1, 0, 0));
+        assertThrows(InvalidParameterException.class, () -> plate.setWakeTime(24, 0, 0));
     }
 
     @Test
     void setWakeInvalidMinute() {
-        assertThrows(InvalidParameterException.class, () -> plate.setWAKE(0, -1, 0));
-        assertThrows(InvalidParameterException.class, () -> plate.setWAKE(0, 60, 0));
+        assertThrows(InvalidParameterException.class, () -> plate.setWakeTime(0, -1, 0));
+        assertThrows(InvalidParameterException.class, () -> plate.setWakeTime(0, 60, 0));
     }
 
     @Test
     void setWakeInvalidSecond() {
-        assertThrows(InvalidParameterException.class, () -> plate.setWAKE(0, 0, -1));
-        assertThrows(InvalidParameterException.class, () -> plate.setWAKE(0, 0, 60));
+        assertThrows(InvalidParameterException.class, () -> plate.setWakeTime(0, 0, -1));
+        assertThrows(InvalidParameterException.class, () -> plate.setWakeTime(0, 0, 60));
     }
 }

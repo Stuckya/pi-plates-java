@@ -1,6 +1,6 @@
 package com.nahuellofeudo.piplates.powerplate24;
 
-public enum LEDMode {
+public enum LedMode {
     ALWAYS_OFF(0),
     BLINK(1),
     ALWAYS_ON(2),
@@ -8,7 +8,7 @@ public enum LEDMode {
 
     private final int value;
 
-    LEDMode(int value) {
+    LedMode(int value) {
         this.value = value;
     }
 

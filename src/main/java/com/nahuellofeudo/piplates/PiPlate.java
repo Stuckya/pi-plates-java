@@ -247,20 +247,22 @@ public abstract class PiPlate {
     }
 
     /**
-     * Returns the Hardware revision
+     * Returns the hardware revision.
+     * Equivalent to Python library's {@code getHWrev(addr)}.
      * @return Double containing hardware revision of the plate
      * @throws PiPlateException when revision command fails
      */
-    public double getHWRev() throws PiPlateException {
+    public double getHardwareRevision() throws PiPlateException {
         return getRevision(COMMAND_GET_HW_REVISION, "Failed to retrieve hardware revision");
     }
 
     /**
-     * Returns the firmware version of the plate
+     * Returns the firmware version of the plate.
+     * Equivalent to Python library's {@code getFWrev(addr)}.
      * @return a double with the firmware version
      * @throws PiPlateException when revision command fails
      */
-    public double getFWRev() throws PiPlateException {
+    public double getFirmwareRevision() throws PiPlateException {
         return getRevision(COMMAND_GET_FW_REVISION, "Failed to retrieve firmware revision");
     }
 
