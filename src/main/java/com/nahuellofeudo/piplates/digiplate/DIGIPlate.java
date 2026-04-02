@@ -4,20 +4,20 @@ import com.nahuellofeudo.piplates.InvalidAddressException;
 import com.nahuellofeudo.piplates.InvalidParameterException;
 import com.nahuellofeudo.piplates.PiPlate;
 import com.nahuellofeudo.piplates.daqcplate.InterruptEdge;
+import com.pi4j.context.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DIGIPlate extends PiPlate {
     static Logger log = LoggerFactory.getLogger(DIGIPlate.class);
 
-    /**
-     * Constructor
-     * @param address the address of the DAQCPlate in the range [0..7]
-     * @throws InvalidAddressException if the address is invalid
-     */
+    public DIGIPlate(Context pi4jContext, int address) throws InvalidAddressException {
+        super(pi4jContext, address);
+        this.address = address;
+    }
+
     public DIGIPlate(int address) throws InvalidAddressException {
         super(address);
-
         this.address = address;
     }
 

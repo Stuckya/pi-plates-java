@@ -4,24 +4,24 @@ import com.nahuellofeudo.piplates.InvalidAddressException;
 import com.nahuellofeudo.piplates.InvalidParameterException;
 import com.nahuellofeudo.piplates.PiPlate;
 import com.nahuellofeudo.piplates.PiPlateException;
+import com.pi4j.context.Context;
 
-/**
- * Created by nahuellofeudo on 8/31/16.
- */
 public class DAQCPlate extends PiPlate {
 
     // The VCC Calibration value for ADC
     int vccValue;
 
-    /**
-     * Constructor
-     * @param address the address of the DAQCPlate in the range [0..7]
-     * @throws InvalidAddressException if the address is invalid
-     */
+    public DAQCPlate(Context pi4jContext, int address) throws InvalidAddressException {
+        super(pi4jContext, address);
+        calibrateVCC();
+    }
+
     public DAQCPlate(int address) throws InvalidAddressException {
         super(address);
+        calibrateVCC();
+    }
 
-        // Calibrate VCC Value (for DAC)
+    private void calibrateVCC() {
         try {
             vccValue = getADC(8);
         } catch (InvalidParameterException e) {

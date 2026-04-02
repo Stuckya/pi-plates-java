@@ -2,8 +2,13 @@ package com.nahuellofeudo.piplates.relayplate;
 
 import com.nahuellofeudo.piplates.InvalidAddressException;
 import com.nahuellofeudo.piplates.InvalidParameterException;
+import com.pi4j.context.Context;
 
 public class RELAYPlate2 extends BaseRELAYPlate {
+    public RELAYPlate2(Context pi4jContext, int address) throws InvalidAddressException {
+        super(pi4jContext, address);
+    }
+
     public RELAYPlate2(int address) throws InvalidAddressException {
         super(address);
     }

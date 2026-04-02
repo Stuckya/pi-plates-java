@@ -12,10 +12,6 @@ import com.pi4j.io.gpio.digital.PullResistance;
 import com.pi4j.io.spi.Spi;
 import com.pi4j.io.spi.SpiBus;
 import com.pi4j.io.spi.SpiConfig;
-import com.pi4j.library.pigpio.PiGpio;
-import com.pi4j.plugin.pigpio.provider.gpio.digital.PiGpioDigitalInputProvider;
-import com.pi4j.plugin.pigpio.provider.gpio.digital.PiGpioDigitalOutputProvider;
-import com.pi4j.plugin.pigpio.provider.spi.PiGpioSpiProvider;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -49,17 +45,28 @@ public abstract class PiPlate {
     public int address;
 
     /**
-     * Constructor for the base pi-plate class
+     * Constructor with dependency-injected Pi4J context
+     * @param pi4jContext the Pi4J context to use for GPIO and SPI
+     * @param address the plate's address
+     * @throws InvalidAddressException when address is outside the valid range
+     */
+    public PiPlate(Context pi4jContext, int address) throws InvalidAddressException {
+        validateAddress(address);
+        this.address = address;
+        initializeGPIO(pi4jContext);
+    }
+
+    /**
+     * Convenience constructor that creates a default Pi4J auto-context.
+     * Automatically detects the platform and providers (FFM plugin).
      * @param address the plate's address
      * @throws InvalidAddressException when address is outside [0..7]
      */
     public PiPlate(int address) throws InvalidAddressException {
-        validateAddress(address);
-        this.address = address;
-        initializeGPIO();
+        this(Pi4J.newAutoContext(), address);
     }
 
-    private void validateAddress(int address) throws InvalidAddressException {
+    public void validateAddress(int address) throws InvalidAddressException {
         if (address < 0 || address > 7) {
             throw new InvalidAddressException("Address must be in the range [0..7]");
         }
@@ -69,17 +76,7 @@ public abstract class PiPlate {
      * Configures the GPIO pins for Frame, SRQ Interrupt, and Ack
      * Initializes the SPI bus
      */
-    private void initializeGPIO() {
-        var piGpio = PiGpio.newNativeInstance();
-        var pi4j = Pi4J.newContextBuilder()
-                .noAutoDetect()
-                .add(
-                        PiGpioDigitalInputProvider.newInstance(piGpio),
-                        PiGpioDigitalOutputProvider.newInstance(piGpio),
-                        PiGpioSpiProvider.newInstance(piGpio)
-                )
-                .build();
-
+    private void initializeGPIO(Context pi4j) {
         frame = pi4j.create(buildFrameConfig(pi4j));
         serviceRequest = pi4j.create(buildSRQConfig(pi4j));
         ack = pi4j.create(buildAckConfig(pi4j));
@@ -88,7 +85,6 @@ public abstract class PiPlate {
         ack.addListener(event -> {
             if (event.state().isLow()) {
                 synchronized (PiPlate.class) {
-                    System.out.println("ACK");
                     acknowledged.set(true);
                     acknowledged.notify();
                 }
@@ -99,7 +95,7 @@ public abstract class PiPlate {
     private static DigitalOutputConfig buildFrameConfig(Context pi4j) {
         return DigitalOutput.newConfigBuilder(pi4j)
                 .name("Frame")
-                .address(GPIO_FRAME)
+                .bcm(GPIO_FRAME)
                 .initial(DigitalState.LOW)
                 .build();
     }
@@ -107,7 +103,7 @@ public abstract class PiPlate {
     private static DigitalInputConfig buildSRQConfig(Context pi4j) {
         return DigitalInput.newConfigBuilder(pi4j)
                 .name("ServiceRequest")
-                .address(GPIO_SRQ)
+                .bcm(GPIO_SRQ)
                 .pull(PullResistance.PULL_UP)
                 .build();
     }
@@ -115,7 +111,7 @@ public abstract class PiPlate {
     private static DigitalInputConfig buildAckConfig(Context pi4j) {
         return DigitalInput.newConfigBuilder(pi4j)
                 .name("Ack")
-                .address(GPIO_ACK)
+                .bcm(GPIO_ACK)
                 .pull(PullResistance.PULL_UP)
                 .build();
     }
@@ -124,7 +120,7 @@ public abstract class PiPlate {
         return Spi.newConfigBuilder(pi4j)
                 .id("SPI" + channel)
                 .bus(SpiBus.BUS_0)
-                .address(channel)
+                .channel(channel)
                 .baud(frequency)
                 .build();
     }
@@ -170,10 +166,22 @@ public abstract class PiPlate {
                     throw new TimeoutException("Data acknowledgment timed out.");
                 }
 
-                var response = new byte[bytesToReturn];
+                var response = new byte[bytesToReturn + 1];
                 readResponse(response);
 
-                return Optional.of(response);
+                // Validate checksum: ~checksum_byte & 0xFF == sum_of_data_bytes & 0xFF
+                int sum = 0;
+                for (int i = 0; i < bytesToReturn; i++) {
+                    sum += unsigned(response[i]);
+                }
+                int checksumByte = unsigned(response[bytesToReturn]);
+                if ((~checksumByte & 0xFF) != (sum & 0xFF)) {
+                    throw new ChecksumException("Response checksum validation failed");
+                }
+
+                var data = new byte[bytesToReturn];
+                System.arraycopy(response, 0, data, 0, bytesToReturn);
+                return Optional.of(data);
             } finally {
                 frame.low();
             }
