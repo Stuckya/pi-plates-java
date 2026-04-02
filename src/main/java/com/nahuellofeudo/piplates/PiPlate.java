@@ -280,6 +280,27 @@ public abstract class PiPlate {
     }
 
     /**
+     * Reads and returns the board's identifier string.
+     * Command 0x01 is universal across all Pi-Plates board types.
+     * @return a string ID read from the board
+     */
+    public String getId() {
+        int ID_LENGTH = 20;
+        return ppCommand(0x01, 0, 0, ID_LENGTH)
+                .map(resp -> {
+                    int length = ID_LENGTH;
+                    for (int x = 0; x < ID_LENGTH; x++) {
+                        if (resp[x] == 0) {
+                            length = x;
+                            break;
+                        }
+                    }
+                    return new String(resp, 0, length);
+                })
+                .orElse("");
+    }
+
+    /**
      * Java does not support unsigned values. Bytes in the range 0..255 are interpreted as signed bytes in the range (-128..127).
      * This method converts a byte (0..255) into a Java int with the unsigned value represented by val (0..255)
      * This is necessary so that math with values > 127 does not fail
