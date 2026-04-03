@@ -50,22 +50,24 @@ public class DAQCPlate extends PiPlate {
 
     /* --------- Interrupt Control Functions --------- */
     /**
-     * Enable triggering an interrupt when an ENABLED event occurs
+     * Enables global interrupt signalling on GPIO22. The board will pull the
+     * line low when a configured digital input or switch event occurs.
      */
     public void interruptEnable() {
         sendCommand(0x04, 0, 0);
     }
 
     /**
-     * Disable triggering interrupts
+     * Disables and clears all interrupts on the board.
      */
     public void interruptDisable() {
         sendCommand(0x05, 0, 0);
     }
 
     /**
-     * Read the interrupt flags
-     * @return integer with all the interrupt flags
+     * Reads the 16-bit interrupt flag register, then clears all flags.
+     *
+     * @return 16-bit value indicating which interrupt sources have fired
      */
     public int getInterruptFlags() {
         var resp = sendQuery(0x06, 0, 0, 2);
@@ -74,10 +76,10 @@ public class DAQCPlate extends PiPlate {
 
     /* ---------  Digital Input Functions --------- */
     /**
-     * Returns the value of a specific input bit
-     * @param bit the bit number to return
-     * @return true if the input bit's state is high, false otherwise.
-     * @throws InvalidParameterException
+     * Returns the state of a single digital input.
+     *
+     * @param bit digital input number (0-7)
+     * @return {@code true} if the input is high, {@code false} if low
      */
     public boolean getDigitalInput(int bit) throws InvalidParameterException {
         validateDINBit(bit);
@@ -86,8 +88,9 @@ public class DAQCPlate extends PiPlate {
     }
 
     /**
-     * Returns the value of all digital inputs
-     * @return the values of all 8 digital inputs
+     * Returns the state of all 8 digital inputs as a bitmask.
+     *
+     * @return 8-bit value where bit 0 = DIN 0, bit 7 = DIN 7
      */
     public int getDigitalInputAll() {
         var resp = sendQuery(0x25, 0, 0, 1);
@@ -95,10 +98,11 @@ public class DAQCPlate extends PiPlate {
     }
 
     /**
-     * Enables the triggering of an interrupt on digital input change
-     * @param bit the bit (input) to trigger an interrupt on
-     * @param edge the edge on which to trigger the interrupt (Rising, Falling or Both)
-     * @throws InvalidParameterException
+     * Enables edge-triggered interrupt on a digital input. Global interrupts
+     * must be enabled with {@link #interruptEnable()} for signalling to occur.
+     *
+     * @param bit  digital input number (0-7)
+     * @param edge which edge(s) trigger the interrupt
      */
     public void enableDigitalInputInterrupt(int bit, InterruptEdge edge) throws InvalidParameterException {
         validateDINBit(bit);
@@ -116,9 +120,9 @@ public class DAQCPlate extends PiPlate {
     }
 
     /**
-     * Disables the interrupt-on-change on the digital input bit
-     * @param bit digital input on which to disable interrupt-on-change
-     * @throws InvalidParameterException
+     * Disables the interrupt on the specified digital input.
+     *
+     * @param bit digital input number (0-7)
      */
     public void disableDigitalInputInterrupt(int bit) throws InvalidParameterException {
         validateDINBit(bit);
@@ -127,12 +131,14 @@ public class DAQCPlate extends PiPlate {
 
     /* --------- Utility functions for peripherals --------- */
     /**
-     * Reads a temperature from a temperature measurement from a DS18B20 connected to a particular Digital Input channel
-     * @param channel the channel to which the DS18B20 is connected, in the range [0..7]
-     * @param unit the temperature unit to use (Fahrenheit, Celsius or Kelvin)
-     * @return the value of temperature, in the selected unit, as read by a DS18B20
-     * @throws InvalidParameterException
-     * @throws InterruptedException
+     * Reads temperature from a DS18B20 sensor connected to a digital input.
+     * This function takes approximately 1 second to complete while the sensor
+     * performs its conversion.
+     *
+     * @param channel digital input where the DS18B20 is connected (0-7)
+     * @param unit    temperature scale to return
+     * @return the measured temperature in the requested unit
+     * @throws InterruptedException if the sensor conversion delay is interrupted
      */
     public double getTemperature(int channel, TemperatureUnit unit) throws InvalidParameterException, InterruptedException {
         validateRange(channel, 0, 7, "Temperature sensor channel");
@@ -167,12 +173,14 @@ public class DAQCPlate extends PiPlate {
 
 
     /**
-     * Reads range information from a HC-SR04 ultrasonic range finder connected to a digital input channel
-     * @param channel the channel to which the HC-SR04 is connected, in the range [0..6]
-     * @param unit the unit of distance to use when returning the range (Centimeters or Inches)
-     * @return the range as measured by the HC-SR04 sensor, in the requested units.
-     * @throws PiPlateException
-     * @throws InterruptedException
+     * Measures distance using an HC-SR04 ultrasonic range sensor connected to a
+     * DIN/DOUT pair. Takes approximately 70ms while the sensor performs its measurement.
+     *
+     * @param channel the DIN/DOUT pair to use (0-6)
+     * @param unit    distance unit for the result
+     * @return the measured distance in the requested unit
+     * @throws PiPlateException     if the sensor returns zero (not connected or fault)
+     * @throws InterruptedException if the measurement delay is interrupted
      */
     public double getRange(int channel, DistanceUnit unit) throws PiPlateException, InterruptedException {
         validateRange(channel, 0, 6, "Range sensor channel");
@@ -198,11 +206,15 @@ public class DAQCPlate extends PiPlate {
 
     /* --------- ADC Functions --------- */
     /**
-     * Get the value of an A/D input
-     * @param channel A/D channel to read from
-     * @return the value returned by the A/D converter
-     * @throws InvalidParameterException
-     * @throws InvalidAddressException
+     * Reads a scaled ADC count from a single analog input channel. Channels 0-7
+     * measure 0-4.095 V; channel 8 reads the supply voltage (Vcc). The returned
+     * value is the raw 10-bit reading multiplied by 4 (or 8 for channel 8).
+     *
+     * <p>Note: unlike the Python {@code getADC} which returns volts, this method
+     * returns the scaled integer count.
+     *
+     * @param channel analog input channel (0-8, where 8 = Vcc reference)
+     * @return scaled ADC count
      */
     public int getAnalogInput(int channel) throws InvalidParameterException {
         validateAnalogIn(channel);
@@ -223,8 +235,10 @@ public class DAQCPlate extends PiPlate {
 
 
     /**
-     * Reads the values of all 8 analog inputs
-     * @return an array of 8 ints containing the analog values
+     * Reads scaled ADC counts from all 8 analog input channels (0-7).
+     * Each value is the raw 10-bit reading multiplied by 4.
+     *
+     * @return array of 8 scaled ADC counts, one per channel
      */
     public int[] getAnalogInputAll() {
         int [] values = new int [8];
@@ -243,10 +257,10 @@ public class DAQCPlate extends PiPlate {
 
     /* --------- PWM and DAC Output Functions --------- */
     /**
-     * Sets a PWM output channel
-     * @param channel the channel (0 or 1)
-     * @param value the value (0..1023)
-     * @throws InvalidParameterException
+     * Sets the duty cycle of a PWM output channel.
+     *
+     * @param channel PWM channel (0 or 1)
+     * @param value   duty cycle (0 = 0%, 1023 = 100%)
      */
     public void setPwm(int channel, int value) throws InvalidParameterException {
         if (value < 0 || value > 1023) throw new InvalidParameterException("ERROR: PWM argument out of range - must be between 0 and 1023");
@@ -260,10 +274,10 @@ public class DAQCPlate extends PiPlate {
 
 
     /**
-     * Returns the current output value of the PWM channel
-     * @param channel the channel (0 or 1)
-     * @return the value assigned to the PWM output
-     * @throws InvalidParameterException
+     * Returns the current duty cycle setting of a PWM output channel.
+     *
+     * @param channel PWM channel (0 or 1)
+     * @return current duty cycle value (0-1023)
      */
     public int getPwm(int channel) throws InvalidParameterException {
         validatePWMChannel(channel);
@@ -275,10 +289,11 @@ public class DAQCPlate extends PiPlate {
 
 
     /**
-     * Sets an analog value in one of the two analog outputs
-     * @param channel the output channel (0 or 1)
-     * @param value the value (0v to 4.095v)
-     * @throws InvalidParameterException
+     * Sets the output voltage of a DAC channel. The actual output is
+     * ratiometric to the board's Vcc supply voltage.
+     *
+     * @param channel DAC channel (0 or 1)
+     * @param value   desired output voltage (0.0 to 4.095 V)
      */
     public void setDac(int channel, double value) throws InvalidParameterException {
         if (value < 0 || value > 4.095) throw new InvalidParameterException("ERROR: DAC argument out of range - must be between 0 and 4.095 volts");
@@ -291,10 +306,10 @@ public class DAQCPlate extends PiPlate {
 
 
     /**
-     * Returns the analog output's value
-     * @param channel the output channel (0 or 1)
-     * @return the value of the output (0v to 4.095v)
-     * @throws InvalidParameterException
+     * Returns the current DAC output voltage setting.
+     *
+     * @param channel DAC channel (0 or 1)
+     * @return current output voltage in volts
      */
     double getDac(int channel) throws InvalidParameterException {
         requireCalibratedVcc();
@@ -312,9 +327,9 @@ public class DAQCPlate extends PiPlate {
 
     /* --------- LED Functions --------- */
     /**
-     * Turns on the bi-color led
-     * @param led color to turn on
-     * @throws PiPlateException
+     * Turns on one of the LEDs in the bicolor LED package.
+     *
+     * @param led which LED to turn on (RED = 0, GREEN = 1)
      */
     public void setLed(BiColorLed led) {
         sendCommand(0x60, led.getValue(), 0);
@@ -322,9 +337,9 @@ public class DAQCPlate extends PiPlate {
 
 
     /**
-     * Turns off the bi-color led
-     * @param led color to turn off
-     * @throws PiPlateException
+     * Turns off one of the LEDs in the bicolor LED package.
+     *
+     * @param led which LED to turn off (RED = 0, GREEN = 1)
      */
     public void clearLed(BiColorLed led) {
         sendCommand(0x61, led.getValue(), 0);
@@ -332,9 +347,9 @@ public class DAQCPlate extends PiPlate {
 
 
     /**
-     * Toggles the bi-color LED in the DACQ-Plate
-     * @param led the LED to toggle
-     * @throws InvalidParameterException
+     * Toggles the state of one of the LEDs in the bicolor LED package.
+     *
+     * @param led which LED to toggle (RED = 0, GREEN = 1)
      */
     public void toggleLed(BiColorLed led) {
         sendCommand(0x62, led.getValue(), 0);
@@ -342,9 +357,10 @@ public class DAQCPlate extends PiPlate {
 
 
     /**
-     * Returns the value of the bi-color LED in the DACQ-Plate
-     * @param led the LED whose status to return
-     * @throws InvalidParameterException
+     * Returns the current state of one of the LEDs in the bicolor LED package.
+     *
+     * @param led which LED to query (RED = 0, GREEN = 1)
+     * @return 1 if the LED is on, 0 if off
      */
     int getLed(BiColorLed led) {
         return unsigned(sendQuery(0x63, led.getValue(), 0, 1)[0]);

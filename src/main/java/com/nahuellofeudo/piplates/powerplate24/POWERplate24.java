@@ -14,10 +14,16 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 
 /**
- * Interface to the Pi-Plates POWERplate24 - a power management board with
- * high-voltage monitoring, RTC, fan control, and scheduled wake-up.
- * Only address 0 is valid (single board per stack).
- * Reference: Pi-Plates Python library v11 (POWERplate24)
+ * Interface to the Pi-Plates POWERplate24 — a power management board with
+ * high-voltage monitoring (0-24 V), real-time clock, cooling fan control,
+ * scheduled wake-up, and pushbutton power control. Only address 0 is valid
+ * (single board per stack).
+ *
+ * <p>Many settings on this board (fan state, LED mode, power switch config,
+ * shutdown delay) are persisted in non-volatile memory and retained across
+ * power cycles.
+ *
+ * @see <a href="https://pi-plates.com/powerplate24-users-guide/">POWERplate24 User's Guide</a>
  */
 public class POWERplate24 extends PiPlate {
 
@@ -52,8 +58,9 @@ public class POWERplate24 extends PiPlate {
     /* --------- ADC Functions --------- */
 
     /**
-     * Reads the +5VDC rail voltage
-     * @return voltage in volts
+     * Reads the +5 VDC rail voltage (accuracy +/-2%).
+     *
+     * @return measured voltage in volts
      */
     public double getVoltageIn() {
         var resp = sendQuery(0x30, 0, 0, 2);
@@ -62,8 +69,9 @@ public class POWERplate24 extends PiPlate {
     }
 
     /**
-     * Reads the high voltage input (0-24V range)
-     * @return voltage in volts
+     * Reads the external DC input voltage (0-24 V range, accuracy +/-2%).
+     *
+     * @return measured voltage in volts
      */
     public double getHighVoltageIn() {
         var resp = sendQuery(0x30, 1, 0, 2);
@@ -95,8 +103,8 @@ public class POWERplate24 extends PiPlate {
 
     /**
      * Sets the on-board real-time clock to the specified time.
-     * Equivalent to Python library's {@code setRTC(addr, zone)}.
-     * @param time the time to set
+     *
+     * @param time the time to set (hour, minute, second)
      */
     public void setRealTimeClock(LocalTime time) {
         sendCommand(0xD1, time.getHour(), 0);
@@ -118,8 +126,9 @@ public class POWERplate24 extends PiPlate {
     }
 
     /**
-     * Sets the scheduled wake-up time
-     * @param hour hour (0-23)
+     * Sets the scheduled wake-up time in 24-hour format.
+     *
+     * @param hour   hour (0-23)
      * @param minute minute (0-59)
      * @param second second (0-59)
      */
@@ -132,7 +141,8 @@ public class POWERplate24 extends PiPlate {
     }
 
     /**
-     * Enables scheduled wake-up
+     * Enables scheduled wake-up. Call {@link #setWakeTime} first to configure
+     * the wake time, then {@link #powerOff()} to begin the sleep cycle.
      */
     public void enableWake() {
         sendCommand(0xD5, 1, 0);
@@ -183,8 +193,11 @@ public class POWERplate24 extends PiPlate {
     }
 
     /**
-     * Sets the LED operating mode (persistent across power cycles)
-     * @param mode the LED mode
+     * Sets the LED operating mode. This setting is persisted on the board and
+     * retained across power cycles. Holding the pushbutton for 10 seconds
+     * resets it to {@link LedMode#ALWAYS_ON}.
+     *
+     * @param mode the desired LED operating mode
      */
     public void setLedMode(LedMode mode) {
         sendCommand(0x6F, mode.getValue(), 0);
@@ -193,14 +206,17 @@ public class POWERplate24 extends PiPlate {
     /* --------- Fan Functions --------- */
 
     /**
-     * Enables the cooling fan (persistent)
+     * Enables the cooling fan. This setting is persisted on the board and
+     * retained across power cycles.
      */
     public void setFanOn() {
         sendCommand(0xEF, 0, 0);
     }
 
     /**
-     * Disables the cooling fan (persistent)
+     * Disables the cooling fan. This setting is persisted on the board and
+     * retained across power cycles. Holding the pushbutton for 10 seconds
+     * resets the fan to the ON state.
      */
     public void setFanOff() {
         sendCommand(0xEE, 0, 0);
@@ -227,7 +243,10 @@ public class POWERplate24 extends PiPlate {
     }
 
     /**
-     * Sets the power-down delay after shutdown signal
+     * Sets the delay between the shutdown signal and power removal. Default is
+     * 20 seconds. This setting is persisted on the board. Holding the
+     * pushbutton for 10 seconds resets it to 20 seconds.
+     *
      * @param delay delay in seconds (10-240)
      */
     public void setShutdownDelay(int delay) throws InvalidParameterException {
@@ -236,16 +255,23 @@ public class POWERplate24 extends PiPlate {
     }
 
     /**
-     * Enables the pushbutton power switch control without bypass.
+     * Enables pushbutton power control. The board will initiate a shutdown
+     * sequence when the button is held for 3 seconds. This setting is persisted
+     * on the board. Requires {@code dtoverlay=gpio-shutdown,gpio_pin=24} in
+     * {@code /boot/config.txt}.
      */
     public void enablePowerSwitch() {
         sendCommand(0x53, 0, 0);
     }
 
     /**
-     * Enables the pushbutton power switch control with auto-power-on bypass.
-     * Bypass is only activated when firmware >= 1.2; older firmware ignores the request
-     * and enables the power switch without bypass.
+     * Enables pushbutton power control with auto-power-on bypass. When bypass
+     * is active, the board powers up the stack whenever DC supply is initially
+     * connected (without waiting for a button press). This setting is persisted
+     * on the board.
+     *
+     * @apiNote Bypass requires firmware >= 1.2. Older firmware silently falls
+     *          back to standard power switch mode without bypass.
      */
     public void enablePowerSwitchWithBypass() throws PiPlateException {
         int bparg = getFirmwareRevision() >= 1.2 ? 1 : 0;
@@ -253,14 +279,15 @@ public class POWERplate24 extends PiPlate {
     }
 
     /**
-     * Disables the pushbutton power switch control
+     * Disables pushbutton power control. This setting is persisted on the board.
      */
     public void disablePowerSwitch() {
         sendCommand(0x54, 0, 0);
     }
 
     /**
-     * Initiates the power-down sequence
+     * Initiates the power-down sequence. Requires
+     * {@code dtoverlay=gpio-shutdown,gpio_pin=24} in {@code /boot/config.txt}.
      */
     public void powerOff() {
         sendCommand(0x56, 0, 0);
@@ -269,16 +296,16 @@ public class POWERplate24 extends PiPlate {
     /* --------- Power Status Functions --------- */
 
     /**
-     * Enables the STAT pin interrupt to signal power status changes.
-     * Equivalent to Python library's {@code statEnable(addr)}.
+     * Enables the STAT pin (GPIO22) interrupt. The board will pull the line low
+     * when a change occurs to the power status of the external DC supply.
      */
     public void enableStatusInterrupt() {
         sendCommand(0x04, 0, 0);
     }
 
     /**
-     * Disables the STAT pin interrupt.
-     * Equivalent to Python library's {@code statDisable(addr)}.
+     * Disables the STAT pin (GPIO22) interrupt. The board will stop asserting
+     * status changes on the line.
      */
     public void disableStatusInterrupt() {
         sendCommand(0x05, 0, 0);
@@ -294,8 +321,11 @@ public class POWERplate24 extends PiPlate {
     }
 
     /**
-     * Reads the current power status
-     * @return power status byte (bit 0=NO_AC, bit 1=LOW_BAT, bit 2=LOW_DC_IN)
+     * Reads the current power status of the external DC supply.
+     *
+     * @return power status byte: bit 0 = NO_AC (running on battery),
+     *         bit 1 = LOW_BAT (battery below threshold),
+     *         bit 2 = LOW_DC_IN (external DC below 8 V)
      */
     public int getPowerStatus() {
         var resp = sendQuery(0x07, 0, 0, 1);

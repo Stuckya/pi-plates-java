@@ -6,8 +6,16 @@ import com.nahuellofeudo.piplates.PiPlate;
 import com.pi4j.context.Context;
 
 /**
- * Interface to the Pi-Plates CURRENTplate - an 8-channel 4-20mA current loop measurement board.
- * Reference: Pi-Plates Python library v11 (CURRENTplate)
+ * Interface to the Pi-Plates CURRENTplate — an 8-channel 4-20mA current loop
+ * measurement board with 16-bit ADC resolution. Designed for industrial
+ * sensing applications (pressure, temperature, flow, level).
+ * Up to 8 boards can be stacked (addresses 0-7).
+ *
+ * <p>Channels are 1-indexed (1-8). The measurement range is 0-24 mA, but
+ * values below 4 mA will not be accurate (below 4 mA typically indicates a
+ * sensor fault or disconnection).
+ *
+ * @see <a href="https://pi-plates.com/currentplate-users-guide/">CURRENTplate User's Guide</a>
  */
 public class CURRENTplate extends PiPlate {
 
@@ -27,10 +35,10 @@ public class CURRENTplate extends PiPlate {
     /* --------- Current Measurement Functions --------- */
 
     /**
-     * Reads the current on a single channel.
-     * Equivalent to Python library's {@code getI(addr, channel)}.
-     * @param channel the input channel (1-8)
-     * @return current in milliamps (0-24mA range), rounded to 4 decimal places
+     * Reads the loop current on a single channel.
+     *
+     * @param channel input channel (1-8)
+     * @return current in milliamps (0-24 mA range, values below 4 mA are inaccurate)
      */
     public double getCurrent(int channel) throws InvalidParameterException {
         validateChannel(channel);
@@ -40,9 +48,9 @@ public class CURRENTplate extends PiPlate {
     }
 
     /**
-     * Reads the current on all 8 channels simultaneously.
-     * Equivalent to Python library's {@code getIall(addr)}.
-     * @return array of 8 current values in milliamps
+     * Reads the loop current on all 8 channels in a single operation.
+     *
+     * @return array of 8 current values in milliamps (index 0 = channel 1)
      */
     public double[] getCurrentAll() {
         var resp = sendQuery(0x31, 0, 0, 16);

@@ -261,9 +261,11 @@ public abstract class PiPlate {
     /* --------- System Functions --------- */
 
     /**
-     * Ping the plate
-     * @return address byte if the plate is available
-     * @throws PiPlateException when plate is missing
+     * Verifies communication with the board by requesting its address byte.
+     * Used for detecting whether a board is present at a given address.
+     *
+     * @return the raw address byte returned by the board
+     * @throws PiPlateException if the board does not respond
      */
     public byte getAddress() throws PiPlateException {
         return sendQuery(COMMAND_GET_ADDRESS, 0, 0, 1)[0];
@@ -297,9 +299,9 @@ public abstract class PiPlate {
 
     /**
      * Reads and returns the board's identifier string
-     * (e.g. "Pi-Plates RELAYplate2").
+     * (e.g. "Pi-Plates RELAYplate2", "Pi-Plates DAQCplate").
      *
-     * @return null-terminated descriptor string read from the board
+     * @return descriptor string identifying the board type
      */
     public String getId() {
         int idLength = 20;
