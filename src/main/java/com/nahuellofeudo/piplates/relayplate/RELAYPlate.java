@@ -5,6 +5,13 @@ import com.nahuellofeudo.piplates.InvalidParameterException;
 import com.pi4j.context.Context;
 
 
+/**
+ * Interface to the Pi-Plates RELAYplate — a 7-relay board.
+ * Each relay is an SPST switch rated at 1A / 24VDC.
+ * Up to 8 boards can be stacked (addresses 0-7).
+ *
+ * @see <a href="https://pi-plates.com/relayplate-users-guide/">RELAYplate User's Guide</a>
+ */
 public class RELAYPlate extends BaseRELAYPlate {
     public RELAYPlate(Context pi4jContext, int address) throws InvalidAddressException {
         super(pi4jContext, address);
@@ -58,8 +65,9 @@ public class RELAYPlate extends BaseRELAYPlate {
      */
     @Override
     public void relayAll(int relays) {
-        if (relays < 0 || relays > 127)
+        if (relays < 0 || relays > 127) {
             throw new InvalidParameterException("Relays parameter must be between 0 and 127");
+        }
         sendCommand(RelayCommand.RELAY_ALL.getCode(), relays, 0);
     }
 
@@ -82,7 +90,8 @@ public class RELAYPlate extends BaseRELAYPlate {
 
     @Override
     protected void validateRelay(int relay) {
-        if (relay < 1 || relay > 7)
+        if (relay < 1 || relay > 7) {
             throw new InvalidParameterException("Relay parameter must be in the range [1..7]");
+        }
     }
 }

@@ -4,6 +4,7 @@ import com.nahuellofeudo.piplates.InvalidAddressException;
 import com.nahuellofeudo.piplates.PiPlate;
 import com.pi4j.context.Context;
 
+/** Shared implementation for the RELAYplate (7-relay) and RELAYplate2 (8-relay) boards. */
 public abstract class BaseRELAYPlate extends PiPlate implements RelayBoard {
     protected BaseRELAYPlate(Context pi4jContext, int address) throws InvalidAddressException {
         super(pi4jContext, address);

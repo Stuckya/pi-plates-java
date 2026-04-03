@@ -69,24 +69,29 @@ public class CURRENTplate extends PiPlate {
 
     /* --------- LED Functions --------- */
 
+    /** Turns on the green indicator LED. */
     public void setLed() {
         sendCommand(0x60, 0, 0);
     }
 
+    /** Turns off the green indicator LED. */
     public void clearLed() {
         sendCommand(0x61, 0, 0);
     }
 
+    /** Toggles the green indicator LED. */
     public void toggleLed() {
         sendCommand(0x62, 0, 0);
     }
 
     /* --------- Interrupt Functions --------- */
 
+    /** Enables interrupt signalling on the SRQ line (GPIO22) when events occur. */
     public void interruptEnable() {
         sendCommand(0x04, 0, 0);
     }
 
+    /** Disables interrupt signalling on the SRQ line. */
     public void interruptDisable() {
         sendCommand(0x05, 0, 0);
     }
@@ -100,10 +105,12 @@ public class CURRENTplate extends PiPlate {
         return unsigned(resp[0]);
     }
 
+    /** Asserts the SRQ interrupt line (for testing or manual signalling). */
     public void setInterrupt() {
         sendCommand(0xF4, 0, 0);
     }
 
+    /** De-asserts the SRQ interrupt line. */
     public void clearInterrupt() {
         sendCommand(0xF5, 0, 0);
     }

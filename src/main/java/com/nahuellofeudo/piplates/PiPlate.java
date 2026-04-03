@@ -19,6 +19,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
+/**
+ * Base class for all Pi-Plates boards. Manages the shared SPI bus, GPIO
+ * handshake lines (FRAME / ACK / SRQ), and the command protocol common to
+ * every board type.
+ *
+ * <p>Subclasses provide board-specific commands by calling
+ * {@link #sendCommand} and {@link #sendQuery}.
+ *
+ * @see <a href="https://pi-plates.com">pi-plates.com</a>
+ */
 public abstract class PiPlate {
 
     private static final int GPIO_FRAME = 25;
@@ -130,6 +140,12 @@ public abstract class PiPlate {
         return serviceRequest.isLow();
     }
 
+    /**
+     * Registers a callback that fires when the service-request (SRQ) line on
+     * GPIO22 changes state, indicating that the plate has an event to report.
+     *
+     * @param func callback invoked on SRQ state changes
+     */
     public void registerServiceRequestCallback(Consumer<DigitalStateChangeEvent<DigitalInput>> func) {
         serviceRequest.addListener(func::accept);
     }
@@ -254,16 +270,20 @@ public abstract class PiPlate {
     }
 
     /**
-     * Returns the hardware revision.
-     * Equivalent to Python library's {@code getHWrev(addr)}.
+     * Returns the hardware revision as a decimal (e.g. 3.2).
+     *
+     * @return hardware revision where the whole part is the major and the
+     *         fractional part is the minor revision
      */
     public double getHardwareRevision() throws PiPlateException {
         return extractRevision(sendQuery(COMMAND_GET_HW_REVISION, 0, 0, 1)[0]);
     }
 
     /**
-     * Returns the firmware version of the plate.
-     * Equivalent to Python library's {@code getFWrev(addr)}.
+     * Returns the firmware version as a decimal (e.g. 1.2).
+     *
+     * @return firmware version where the whole part is the major and the
+     *         fractional part is the minor version
      */
     public double getFirmwareRevision() throws PiPlateException {
         return extractRevision(sendQuery(COMMAND_GET_FW_REVISION, 0, 0, 1)[0]);
@@ -276,16 +296,18 @@ public abstract class PiPlate {
     }
 
     /**
-     * Reads and returns the board's identifier string.
-     * Command 0x01 is universal across all Pi-Plates board types.
+     * Reads and returns the board's identifier string
+     * (e.g. "Pi-Plates RELAYplate2").
+     *
+     * @return null-terminated descriptor string read from the board
      */
     public String getId() {
-        int ID_LENGTH = 20;
-        byte[] resp = sendQuery(0x01, 0, 0, ID_LENGTH);
-        int length = IntStream.range(0, ID_LENGTH)
+        int idLength = 20;
+        byte[] resp = sendQuery(0x01, 0, 0, idLength);
+        int length = IntStream.range(0, idLength)
                 .filter(i -> resp[i] == 0)
                 .findFirst()
-                .orElse(ID_LENGTH);
+                .orElse(idLength);
         return new String(resp, 0, length);
     }
 
@@ -305,7 +327,10 @@ public abstract class PiPlate {
     }
 
     /**
-     * Converts a signed byte to an unsigned int (0-255).
+     * Converts a signed Java byte to its unsigned integer value (0-255).
+     *
+     * @param val the signed byte
+     * @return the unsigned value in the range 0-255
      */
     public int unsigned(byte val) {
         return val & 0xFF;

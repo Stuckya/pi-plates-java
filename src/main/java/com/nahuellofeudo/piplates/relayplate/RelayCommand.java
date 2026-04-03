@@ -1,5 +1,6 @@
 package com.nahuellofeudo.piplates.relayplate;
 
+/** SPI command opcodes shared by RELAYplate and RELAYplate2 boards. */
 public enum RelayCommand {
     RELAY_ON(0x10),
     RELAY_OFF(0x11),

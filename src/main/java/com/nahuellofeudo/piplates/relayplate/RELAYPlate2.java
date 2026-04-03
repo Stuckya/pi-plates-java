@@ -4,6 +4,13 @@ import com.nahuellofeudo.piplates.InvalidAddressException;
 import com.nahuellofeudo.piplates.InvalidParameterException;
 import com.pi4j.context.Context;
 
+/**
+ * Interface to the Pi-Plates RELAYplate2 — an 8-relay board.
+ * Relay parameters are 1-indexed and transmitted as {@code relay - 1} over SPI.
+ * Up to 8 boards can be stacked (addresses 0-7).
+ *
+ * @see <a href="https://pi-plates.com/relayplate2-users-guide/">RELAYplate2 User's Guide</a>
+ */
 public class RELAYPlate2 extends BaseRELAYPlate {
     public RELAYPlate2(Context pi4jContext, int address) throws InvalidAddressException {
         super(pi4jContext, address);
@@ -57,8 +64,9 @@ public class RELAYPlate2 extends BaseRELAYPlate {
      */
     @Override
     public void relayAll(int relays) {
-        if (relays < 0 || relays > 255)
+        if (relays < 0 || relays > 255) {
             throw new InvalidParameterException("Relays parameter must be between 0 and 255");
+        }
         sendCommand(RelayCommand.RELAY_ALL.getCode(), relays, 0);
     }
 
@@ -81,7 +89,8 @@ public class RELAYPlate2 extends BaseRELAYPlate {
 
     @Override
     protected void validateRelay(int relay) {
-        if (relay < 1 || relay > 8)
+        if (relay < 1 || relay > 8) {
             throw new InvalidParameterException("Relay parameter must be in the range [1..8]");
+        }
     }
 }

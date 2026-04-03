@@ -6,6 +6,14 @@ import com.nahuellofeudo.piplates.PiPlate;
 import com.nahuellofeudo.piplates.PiPlateException;
 import com.pi4j.context.Context;
 
+/**
+ * Interface to the Pi-Plates DAQCplate — a data-acquisition board with
+ * 8 analog inputs (10-bit, 0-4.095 V), 8 digital inputs, 7 digital outputs,
+ * 2 PWM/DAC channels, temperature sensing (DS18B20), and ultrasonic range
+ * measurement (HC-SR04). Up to 8 boards can be stacked (addresses 0-7).
+ *
+ * @see <a href="https://pi-plates.com/daqc-users-guide/">DAQCplate User's Guide</a>
+ */
 public class DAQCPlate extends PiPlate {
 
     // VCC supply voltage in volts, used for DAC conversion (matches Python Vcc)

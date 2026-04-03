@@ -1,5 +1,6 @@
 package com.nahuellofeudo.piplates.daqcplate;
 
+/** Selects one of the two LEDs in the DAQCplate's bicolor LED package. */
 public enum BiColorLed {
     GREEN(0),
     RED(1);

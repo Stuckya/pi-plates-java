@@ -1,5 +1,9 @@
 package com.nahuellofeudo.piplates.powerplate24;
 
+/**
+ * Operating modes for the POWERplate24's bicolor LED. The selected mode is
+ * persisted on the board and retained across power cycles.
+ */
 public enum LedMode {
     ALWAYS_OFF(0),
     BLINK(1),

@@ -8,6 +8,16 @@ import com.pi4j.context.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Interface to the Pi-Plates DIGIplate — an 8-channel digital input board with
+ * edge-triggered event detection, frequency measurement (channels 1-6), and
+ * interrupt signalling via GPIO22. Up to 8 boards can be stacked (addresses 0-7).
+ *
+ * <p>Input channels are 1-indexed (1-8) and internally converted to 0-indexed
+ * values for the SPI protocol.
+ *
+ * @see <a href="https://pi-plates.com/digiplate-users-guide/">DIGIplate User's Guide</a>
+ */
 public class DIGIPlate extends PiPlate {
     static Logger log = LoggerFactory.getLogger(DIGIPlate.class);
 
@@ -48,6 +58,13 @@ public class DIGIPlate extends PiPlate {
 
     /* --------- Event Functions --------- */
 
+    /**
+     * Configures edge-triggered event detection on a digital input channel.
+     * Use {@link #enableEvents()} to activate signalling after configuring.
+     *
+     * @param bit  input channel (1-8)
+     * @param edge which edge(s) trigger the event
+     */
     public void enableDigitalInputEvent(int bit, InterruptEdge edge) throws InvalidParameterException {
         validateDINBit(bit - 1);
         switch (edge) {
@@ -63,6 +80,11 @@ public class DIGIPlate extends PiPlate {
         }
     }
 
+    /**
+     * Removes event monitoring from the specified input channel.
+     *
+     * @param bit input channel (1-8)
+     */
     public void disableDigitalInputEvent(int bit) throws InvalidParameterException {
         validateDINBit(bit - 1);
         sendCommand(0x24, bit - 1, 0);
@@ -82,6 +104,11 @@ public class DIGIPlate extends PiPlate {
         sendCommand(0x05, 0, 0);
     }
 
+    /**
+     * Checks whether the event pin (GPIO22) is currently asserted.
+     *
+     * @return {@code true} if an event has occurred since last read
+     */
     public boolean checkForEvents() {
         return isServiceRequest();
     }
@@ -131,14 +158,17 @@ public class DIGIPlate extends PiPlate {
 
     /* --------- LED Functions --------- */
 
+    /** Turns on the green indicator LED. */
     public void setLed() {
         sendCommand(0x60, 0, 0);
     }
 
+    /** Turns off the green indicator LED. */
     public void clearLed() {
         sendCommand(0x61, 0, 0);
     }
 
+    /** Toggles the green indicator LED. */
     public void toggleLed() {
         sendCommand(0x62, 0, 0);
     }
@@ -146,17 +176,21 @@ public class DIGIPlate extends PiPlate {
     /* --------- System Functions --------- */
 
     /**
-     * Resets the board to power-on state
+     * Restores the board to its power-on configuration.
+     *
+     * @throws InterruptedException if the post-reset delay is interrupted
      */
     public void reset() throws InterruptedException {
         sendCommand(0x0F, 0, 0);
         Thread.sleep(100);
     }
 
+    /** Asserts the SRQ interrupt line (for testing or manual signalling). */
     public void setInterrupt() {
         sendCommand(0xF4, 0, 0);
     }
 
+    /** De-asserts the SRQ interrupt line. */
     public void clearInterrupt() {
         sendCommand(0xF5, 0, 0);
     }
