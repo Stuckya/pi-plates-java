@@ -181,28 +181,28 @@ class DAQCPlateTest {
     void setLedGreen() {
         helper.preloadNoResponse();
         plate.setLed(BiColorLed.GREEN);
-        assertArrayEquals(new byte[]{(byte) BASE_ADDR, 0x60, 0x00, 0x00}, helper.getLastCommandPacket());
+        assertArrayEquals(new byte[]{(byte) BASE_ADDR, 0x60, 0x01, 0x00}, helper.getLastCommandPacket());
     }
 
     @Test
     void setLedRed() {
         helper.preloadNoResponse();
         plate.setLed(BiColorLed.RED);
-        assertArrayEquals(new byte[]{(byte) BASE_ADDR, 0x60, 0x01, 0x00}, helper.getLastCommandPacket());
+        assertArrayEquals(new byte[]{(byte) BASE_ADDR, 0x60, 0x00, 0x00}, helper.getLastCommandPacket());
     }
 
     @Test
     void clearLedGreen() {
         helper.preloadNoResponse();
         plate.clearLed(BiColorLed.GREEN);
-        assertArrayEquals(new byte[]{(byte) BASE_ADDR, 0x61, 0x00, 0x00}, helper.getLastCommandPacket());
+        assertArrayEquals(new byte[]{(byte) BASE_ADDR, 0x61, 0x01, 0x00}, helper.getLastCommandPacket());
     }
 
     @Test
     void toggleLedRed() {
         helper.preloadNoResponse();
         plate.toggleLed(BiColorLed.RED);
-        assertArrayEquals(new byte[]{(byte) BASE_ADDR, 0x62, 0x01, 0x00}, helper.getLastCommandPacket());
+        assertArrayEquals(new byte[]{(byte) BASE_ADDR, 0x62, 0x00, 0x00}, helper.getLastCommandPacket());
     }
 
     /* --------- Parameter Validation --------- */
