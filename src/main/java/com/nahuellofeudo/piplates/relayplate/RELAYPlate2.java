@@ -2,8 +2,20 @@ package com.nahuellofeudo.piplates.relayplate;
 
 import com.nahuellofeudo.piplates.InvalidAddressException;
 import com.nahuellofeudo.piplates.InvalidParameterException;
+import com.pi4j.context.Context;
 
+/**
+ * Interface to the Pi-Plates RELAYplate2 — an 8-relay board.
+ * Relay parameters are 1-indexed and transmitted as {@code relay - 1} over SPI.
+ * Up to 8 boards can be stacked (addresses 0-7).
+ *
+ * @see <a href="https://pi-plates.com/relayplate2-users-guide/">RELAYplate2 User's Guide</a>
+ */
 public class RELAYPlate2 extends BaseRELAYPlate {
+    public RELAYPlate2(Context pi4jContext, int address) throws InvalidAddressException {
+        super(pi4jContext, address);
+    }
+
     public RELAYPlate2(int address) throws InvalidAddressException {
         super(address);
     }
@@ -23,7 +35,7 @@ public class RELAYPlate2 extends BaseRELAYPlate {
     @Override
     public void relayOn(int relay) {
         validateRelay(relay);
-        ppCommand(RelayCommand.RELAY_ON.getCode(), relay - 1, 0, 0);
+        sendCommand(RelayCommand.RELAY_ON.getCode(), relay - 1, 0);
     }
 
     /**
@@ -33,7 +45,7 @@ public class RELAYPlate2 extends BaseRELAYPlate {
     @Override
     public void relayOff(int relay) {
         validateRelay(relay);
-        ppCommand(RelayCommand.RELAY_OFF.getCode(), relay - 1, 0, 0);
+        sendCommand(RelayCommand.RELAY_OFF.getCode(), relay - 1, 0);
     }
 
     /**
@@ -43,34 +55,42 @@ public class RELAYPlate2 extends BaseRELAYPlate {
     @Override
     public void relayToggle(int relay) {
         validateRelay(relay);
-        ppCommand(RelayCommand.RELAY_TOGGLE.getCode(), relay - 1, 0, 0);
+        sendCommand(RelayCommand.RELAY_TOGGLE.getCode(), relay - 1, 0);
     }
 
     /**
      * Sets the state of all 8 relays in a single operation
-     * @param relays the bit-field with the new states of all relays encoded in bits
+     * @param relays the bit-field with the new states of all relays encoded in bits 0..7
      */
     @Override
     public void relayAll(int relays) {
-        if (relays < 0 || relays > 255)
+        if (relays < 0 || relays > 255) {
             throw new InvalidParameterException("Relays parameter must be between 0 and 255");
-        ppCommand(RelayCommand.RELAY_ALL.getCode(), relays, 0, 0);
+        }
+        sendCommand(RelayCommand.RELAY_ALL.getCode(), relays, 0);
     }
 
     /**
      * Reads and returns the state of all relays
-     * @return the state of all relays encoded in bits
+     * @return the state of all relays encoded in bits 0..7
      */
     @Override
     public int relayState() {
-        // TODO: Handle empty better
-        byte [] resp = ppCommand(RelayCommand.RELAY_STATE.getCode(), 0, 0, 1).orElse(new byte[0]);
-        return resp[0];
+        return unsigned(sendQuery(RelayCommand.RELAY_STATE.getCode(), 0, 0, 1)[0]);
+    }
+
+    /**
+     * Resets the board to power-on state
+     */
+    public void reset() throws InterruptedException {
+        sendCommand(0x0F, 0, 0);
+        Thread.sleep(100);
     }
 
     @Override
     protected void validateRelay(int relay) {
-        if (relay < 1 || relay > 8)
+        if (relay < 1 || relay > 8) {
             throw new InvalidParameterException("Relay parameter must be in the range [1..8]");
+        }
     }
 }

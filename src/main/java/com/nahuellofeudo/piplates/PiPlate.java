@@ -12,17 +12,23 @@ import com.pi4j.io.gpio.digital.PullResistance;
 import com.pi4j.io.spi.Spi;
 import com.pi4j.io.spi.SpiBus;
 import com.pi4j.io.spi.SpiConfig;
-import com.pi4j.library.pigpio.PiGpio;
-import com.pi4j.plugin.pigpio.provider.gpio.digital.PiGpioDigitalInputProvider;
-import com.pi4j.plugin.pigpio.provider.gpio.digital.PiGpioDigitalOutputProvider;
-import com.pi4j.plugin.pigpio.provider.spi.PiGpioSpiProvider;
 
 import java.time.Duration;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.stream.IntStream;
 
+/**
+ * Base class for all Pi-Plates boards. Manages the shared SPI bus, GPIO
+ * handshake lines (FRAME / ACK / SRQ), and the command protocol common to
+ * every board type.
+ *
+ * <p>Subclasses provide board-specific commands by calling
+ * {@link #sendCommand} and {@link #sendQuery}.
+ *
+ * @see <a href="https://pi-plates.com">pi-plates.com</a>
+ */
 public abstract class PiPlate {
 
     private static final int GPIO_FRAME = 25;
@@ -46,39 +52,38 @@ public abstract class PiPlate {
 
     private final AtomicBoolean acknowledged = new AtomicBoolean(false);
 
-    public int address;
+    private final int address;
 
     /**
-     * Constructor for the base pi-plate class
+     * Constructor with dependency-injected Pi4J context
+     * @param pi4jContext the Pi4J context to use for GPIO and SPI
+     * @param address the plate's address
+     * @throws InvalidAddressException when address is outside the valid range
+     */
+    public PiPlate(Context pi4jContext, int address) throws InvalidAddressException {
+        validateAddress(address);
+        this.address = address;
+        initializeGPIO(pi4jContext);
+    }
+
+    /**
+     * Convenience constructor that creates a default Pi4J auto-context.
+     * Automatically detects the platform and providers (FFM plugin).
      * @param address the plate's address
      * @throws InvalidAddressException when address is outside [0..7]
      */
     public PiPlate(int address) throws InvalidAddressException {
-        validateAddress(address);
-        this.address = address;
-        initializeGPIO();
+        this(Pi4J.newAutoContext(), address);
     }
 
-    private void validateAddress(int address) throws InvalidAddressException {
+    protected void validateAddress(int address) throws InvalidAddressException {
         if (address < 0 || address > 7) {
             throw new InvalidAddressException("Address must be in the range [0..7]");
         }
     }
 
-    /**
-     * Configures the GPIO pins for Frame, SRQ Interrupt, and Ack
-     * Initializes the SPI bus
-     */
-    private void initializeGPIO() {
-        var piGpio = PiGpio.newNativeInstance();
-        var pi4j = Pi4J.newContextBuilder()
-                .noAutoDetect()
-                .add(
-                        PiGpioDigitalInputProvider.newInstance(piGpio),
-                        PiGpioDigitalOutputProvider.newInstance(piGpio),
-                        PiGpioSpiProvider.newInstance(piGpio)
-                )
-                .build();
+    private void initializeGPIO(Context pi4j) {
+        if (frame != null) return;
 
         frame = pi4j.create(buildFrameConfig(pi4j));
         serviceRequest = pi4j.create(buildSRQConfig(pi4j));
@@ -88,7 +93,6 @@ public abstract class PiPlate {
         ack.addListener(event -> {
             if (event.state().isLow()) {
                 synchronized (PiPlate.class) {
-                    System.out.println("ACK");
                     acknowledged.set(true);
                     acknowledged.notify();
                 }
@@ -98,24 +102,27 @@ public abstract class PiPlate {
 
     private static DigitalOutputConfig buildFrameConfig(Context pi4j) {
         return DigitalOutput.newConfigBuilder(pi4j)
+                .id("Frame")
                 .name("Frame")
-                .address(GPIO_FRAME)
+                .bcm(GPIO_FRAME)
                 .initial(DigitalState.LOW)
                 .build();
     }
 
     private static DigitalInputConfig buildSRQConfig(Context pi4j) {
         return DigitalInput.newConfigBuilder(pi4j)
+                .id("ServiceRequest")
                 .name("ServiceRequest")
-                .address(GPIO_SRQ)
+                .bcm(GPIO_SRQ)
                 .pull(PullResistance.PULL_UP)
                 .build();
     }
 
     private static DigitalInputConfig buildAckConfig(Context pi4j) {
         return DigitalInput.newConfigBuilder(pi4j)
+                .id("Ack")
                 .name("Ack")
-                .address(GPIO_ACK)
+                .bcm(GPIO_ACK)
                 .pull(PullResistance.PULL_UP)
                 .build();
     }
@@ -124,7 +131,7 @@ public abstract class PiPlate {
         return Spi.newConfigBuilder(pi4j)
                 .id("SPI" + channel)
                 .bus(SpiBus.BUS_0)
-                .address(channel)
+                .channel(channel)
                 .baud(frequency)
                 .build();
     }
@@ -133,19 +140,41 @@ public abstract class PiPlate {
         return serviceRequest.isLow();
     }
 
+    /**
+     * Registers a callback that fires when the service-request (SRQ) line on
+     * GPIO22 changes state, indicating that the plate has an event to report.
+     *
+     * @param func callback invoked on SRQ state changes
+     */
     public void registerServiceRequestCallback(Consumer<DigitalStateChangeEvent<DigitalInput>> func) {
         serviceRequest.addListener(func::accept);
     }
 
+    /* --------- SPI Communication --------- */
+
     /**
-     * Send a command to a plate, optionally returning a response
-     * @param command command (plate-dependent)
-     * @param parameter1 1st parameter (command-dependent)
-     * @param parameter2 2nd parameter (command-dependent)
-     * @param bytesToReturn number of bytes to read back from the plate as a response
-     * @return Optionally return an array of bytes with the plate's response
+     * Sends a command to the plate with no response expected.
+     * Equivalent to Python library's {@code ppCMD(addr, cmd, param1, param2, 0)}.
      */
-    public Optional<byte[]> ppCommand(int command, int parameter1, int parameter2, int bytesToReturn) {
+    protected void sendCommand(int command, int parameter1, int parameter2) {
+        executeCommand(command, parameter1, parameter2, 0);
+    }
+
+    /**
+     * Sends a command to the plate and returns the response bytes.
+     * Equivalent to Python library's {@code ppCMD(addr, cmd, param1, param2, bytesToReturn)}.
+     * @param bytesToReturn number of data bytes expected (must be > 0)
+     * @return the response data bytes (checksum already validated and stripped)
+     */
+    protected byte[] sendQuery(int command, int parameter1, int parameter2, int bytesToReturn) {
+        if (bytesToReturn < 1) {
+            throw new InvalidParameterException(
+                    "bytesToReturn must be > 0; use sendCommand() for commands with no response");
+        }
+        return executeCommand(command, parameter1, parameter2, bytesToReturn);
+    }
+
+    private byte[] executeCommand(int command, int parameter1, int parameter2, int bytesToReturn) {
         byte[] packet = new byte[]{
                 (byte) (getBaseAddress() + address),
                 (byte) command,
@@ -156,31 +185,42 @@ public abstract class PiPlate {
         synchronized (PiPlate.class) {
             frame.high();
             try {
-                sendCommand(packet);
+                transferPacket(packet);
 
                 if (acknowledgmentTimedOut(COMMAND_TIMEOUT)) {
                     throw new TimeoutException("Command acknowledgment timed out.");
                 }
 
                 if (bytesToReturn == 0) {
-                    return Optional.empty();
+                    return null;
                 }
 
                 if (acknowledgmentTimedOut(DATA_TIMEOUT)) {
                     throw new TimeoutException("Data acknowledgment timed out.");
                 }
 
-                var response = new byte[bytesToReturn];
+                var response = new byte[bytesToReturn + 1];
                 readResponse(response);
 
-                return Optional.of(response);
+                int sum = 0;
+                for (int i = 0; i < bytesToReturn; i++) {
+                    sum += unsigned(response[i]);
+                }
+                int checksumByte = unsigned(response[bytesToReturn]);
+                if ((~checksumByte & 0xFF) != (sum & 0xFF)) {
+                    throw new ChecksumException("Response checksum validation failed");
+                }
+
+                var data = new byte[bytesToReturn];
+                System.arraycopy(response, 0, data, 0, bytesToReturn);
+                return data;
             } finally {
                 frame.low();
             }
         }
     }
 
-    private void sendCommand(byte[] packet) {
+    private void transferPacket(byte[] packet) {
         spi.transfer(packet, packet.length);
     }
 
@@ -198,7 +238,6 @@ public abstract class PiPlate {
                 }
 
                 try {
-                    // suspend thread until notified or timeout.
                     TimeUnit.NANOSECONDS.timedWait(acknowledged, remainingNanos);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -219,64 +258,81 @@ public abstract class PiPlate {
         }
     }
 
+    /* --------- System Functions --------- */
+
     /**
-     * Ping the plate
-     * @return address + 8 if the plate is available
-     * @throws PiPlateException when plate is missing
+     * Verifies communication with the board by requesting its address byte.
+     * Used for detecting whether a board is present at a given address.
+     *
+     * @return the raw address byte returned by the board
+     * @throws PiPlateException if the board does not respond
      */
     public byte getAddress() throws PiPlateException {
-        var response = ppCommand(COMMAND_GET_ADDRESS, 0, 0, 1);
-
-        if (response.isEmpty()) {
-            // stop execution.
-            throw new PiPlateException("PiPlate not found");
-        }
-
-        return response.get()[0];
+        return sendQuery(COMMAND_GET_ADDRESS, 0, 0, 1)[0];
     }
 
     /**
-     * Returns the Hardware revision
-     * @return Double containing hardware revision of the plate
-     * @throws PiPlateException when revision command fails
+     * Returns the hardware revision as a decimal (e.g. 3.2).
+     *
+     * @return hardware revision where the whole part is the major and the
+     *         fractional part is the minor revision
      */
-    public double getHWRev() throws PiPlateException {
-        return getRevision(COMMAND_GET_HW_REVISION, "Failed to retrieve hardware revision");
+    public double getHardwareRevision() throws PiPlateException {
+        return extractRevision(sendQuery(COMMAND_GET_HW_REVISION, 0, 0, 1)[0]);
     }
 
     /**
-     * Returns the firmware version of the plate
-     * @return a double with the firmware version
-     * @throws PiPlateException when revision command fails
+     * Returns the firmware version as a decimal (e.g. 1.2).
+     *
+     * @return firmware version where the whole part is the major and the
+     *         fractional part is the minor version
      */
-    public double getFWRev() throws PiPlateException {
-        return getRevision(COMMAND_GET_FW_REVISION, "Failed to retrieve firmware revision");
-    }
-
-    private double getRevision(int command, String errorMessage) throws PiPlateException {
-        var response = ppCommand(command, 0, 0, 1);
-
-        if (response.isEmpty()) {
-            // TODO: do we want to stop execution?
-            throw new PiPlateException(errorMessage);
-        }
-
-        return extractRevision(response.get()[0]);
+    public double getFirmwareRevision() throws PiPlateException {
+        return extractRevision(sendQuery(COMMAND_GET_FW_REVISION, 0, 0, 1)[0]);
     }
 
     private double extractRevision(byte revisionByte) {
         int whole = (revisionByte & REVISION_WHOLE_MASK) >> 4;
         int point = revisionByte & REVISION_POINT_MASK;
-
         return whole + (point / 10.0);
     }
 
     /**
-     * Java does not support unsigned values. Bytes in the range 0..255 are interpreted as signed bytes in the range (-128..127).
-     * This method converts a byte (0..255) into a Java int with the unsigned value represented by val (0..255)
-     * This is necessary so that math with values > 127 does not fail
-     * @param val the value to convert to unsigned.
-     * @return a 32-bit int with the unsigned value of val
+     * Reads and returns the board's identifier string
+     * (e.g. "Pi-Plates RELAYplate2", "Pi-Plates DAQCplate").
+     *
+     * @return descriptor string identifying the board type
+     */
+    public String getId() {
+        int idLength = 20;
+        byte[] resp = sendQuery(0x01, 0, 0, idLength);
+        int length = IntStream.range(0, idLength)
+                .filter(i -> resp[i] == 0)
+                .findFirst()
+                .orElse(idLength);
+        return new String(resp, 0, length);
+    }
+
+    /* --------- Validation Utilities --------- */
+
+    /**
+     * Validates that a value is within an inclusive range.
+     * @param value the value to validate
+     * @param min minimum valid value (inclusive)
+     * @param max maximum valid value (inclusive)
+     * @param name description for the error message
+     */
+    protected void validateRange(int value, int min, int max, String name) throws InvalidParameterException {
+        if (value < min || value > max) {
+            throw new InvalidParameterException(name + " must be in the range [" + min + ".." + max + "]");
+        }
+    }
+
+    /**
+     * Converts a signed Java byte to its unsigned integer value (0-255).
+     *
+     * @param val the signed byte
+     * @return the unsigned value in the range 0-255
      */
     public int unsigned(byte val) {
         return val & 0xFF;

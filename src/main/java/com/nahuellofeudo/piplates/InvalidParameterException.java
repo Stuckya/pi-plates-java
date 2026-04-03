@@ -1,9 +1,6 @@
 package com.nahuellofeudo.piplates;
 
-/**
- * One of the method's parameters is invalid
- * Created by nahuellofeudo on 8/31/16.
- */
+/** Thrown when a method parameter is outside its valid range. */
 public class InvalidParameterException extends RuntimeException {
 
     public InvalidParameterException(String message) {

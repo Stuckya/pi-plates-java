@@ -1,9 +1,6 @@
 package com.nahuellofeudo.piplates.daqcplate;
 
-/**
- * Unit of temperature in which to represent the value read from the sensor
- * Created by nahuellofeudo on 9/2/16.
- */
+/** Unit of temperature for DS18B20 sensor readings. */
 public enum TemperatureUnit {
     CELSIUS,
     FAHRENHEIT,
