@@ -60,7 +60,7 @@ public class RELAYPlate2 extends BaseRELAYPlate {
 
     /**
      * Sets the state of all 8 relays in a single operation
-     * @param relays the bit-field with the new states of all relays encoded in bits
+     * @param relays the bit-field with the new states of all relays encoded in bits 0..7
      */
     @Override
     public void relayAll(int relays) {
@@ -72,7 +72,7 @@ public class RELAYPlate2 extends BaseRELAYPlate {
 
     /**
      * Reads and returns the state of all relays
-     * @return the state of all relays encoded in bits
+     * @return the state of all relays encoded in bits 0..7
      */
     @Override
     public int relayState() {

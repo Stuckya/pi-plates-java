@@ -98,16 +98,18 @@ public class DIGIPlate extends PiPlate {
     }
 
     /**
-     * Disables SRQ pin on DIGIplate
+     * Disables interrupt assertion on SRQ. The board will still track events
+     * internally, but will not signal the host.
      */
     public void disableEvents() {
         sendCommand(0x05, 0, 0);
     }
 
     /**
-     * Checks whether the event pin (GPIO22) is currently asserted.
+     * Checks whether any events are pending by reading the GPIO event pin.
+     * Does not clear the event flags.
      *
-     * @return {@code true} if an event has occurred since last read
+     * @return {@code true} if one or more events are pending
      */
     public boolean checkForEvents() {
         return isServiceRequest();

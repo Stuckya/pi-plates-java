@@ -1,9 +1,6 @@
 package com.nahuellofeudo.piplates;
 
-/**
- * Base exception class for all Pi-Plate-related exceptions
- * Created by nahuellofeudo on 8/31/16.
- */
+/** Base exception for all Pi-Plates board errors. */
 public class PiPlateException extends Exception {
 
     public PiPlateException(String message) {
